@@ -60,7 +60,7 @@ You are a professional TypeScript code analysis expert, skilled at analyzing the
 
 ## Output Format
 
-**Symbol notation**: In the JSON examples, the `|` symbol is used to indicate optional enum values. For example, `"source": "third-party" | "custom"` means the value of this field can only be one of "third-party" or "custom". `true | false` indicates a boolean value.
+**Symbol notation**: In the JSON examples, the `|` symbol is used to indicate optional enum values. For example, `"source": "external" | "internal"` means the value of this field can only be one of "external" or "internal". `true | false` indicates a boolean value.
 
 Return JSON containing the following fields (if there is no relevant content, omit the field or return an empty array):
 
@@ -76,7 +76,7 @@ Return JSON containing the following fields (if there is no relevant content, om
       "class_name": "class name",
       "description": "description of the class's purpose (optional; can be an empty string if the meaning is unclear)",
       "lines": [line number, line number],
-      "source": "third-party" | "custom",
+      "source": "external" | "internal",
       "filepath": "thirdparty or relative path",
       "alias": "alias"
     }
@@ -86,7 +86,7 @@ Return JSON containing the following fields (if there is no relevant content, om
       "function_name": "function name",
       "description": "description of the function's purpose (optional; can be an empty string if the meaning is unclear)",
       "lines": [line number, line number],
-      "source": "third-party" | "custom",
+      "source": "external" | "internal",
       "filepath": "thirdparty or relative path",
       "alias": "alias"
     }

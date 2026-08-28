@@ -64,7 +64,7 @@ Explicit task requirements that guide you on how to use the above information fo
 
 ## Output Format
 
-**Symbol notation**: In the JSON examples, the `|` symbol is used to indicate optional enum values. For example, `"source": "third-party" | "custom"` means the value of this field can only be one of "third-party" or "custom". `true | false` indicates a boolean value.
+**Symbol notation**: In the JSON examples, the `|` symbol is used to indicate optional enum values. For example, `"source": "external" | "internal"` means the value of this field can only be one of "external" or "internal". `true | false` indicates a boolean value.
 
 Please return the analysis results strictly in the following JSON format, without including any other text. Selectively include the corresponding fields based on the characteristics of different programming languages:
 
@@ -80,7 +80,7 @@ Please return the analysis results strictly in the following JSON format, withou
       "class_name": "imported class name",
       "description": "description of the class's purpose (optional; can be an empty string if the meaning is unclear)",
       "lines": [start line, end line],
-      "source": "third-party" | "custom",
+      "source": "external" | "internal",
       "filepath": "thirdparty or file relative path",
       "alias": "alias (optional)"
     }
@@ -90,7 +90,7 @@ Please return the analysis results strictly in the following JSON format, withou
       "function_name": "imported function name",
       "description": "description of the function's purpose (optional; can be an empty string if the meaning is unclear)",
       "lines": [start line, end line],
-      "source": "third-party" | "custom",
+      "source": "external" | "internal",
       "filepath": "thirdparty or file relative path",
       "alias": "alias (optional)"
     }
@@ -100,7 +100,7 @@ Please return the analysis results strictly in the following JSON format, withou
       "variable_name": "imported variable name",
       "description": "description of the variable's purpose (optional; can be an empty string if the meaning is unclear)",
       "lines": [start line, end line],
-      "source": "third-party" | "custom",
+      "source": "external" | "internal",
       "filepath": "thirdparty or file relative path",
       "alias": "alias (optional)"
     }
@@ -110,7 +110,7 @@ Please return the analysis results strictly in the following JSON format, withou
       "package_name": "package name (for Python, Java, Go)",
       "description": "description of the package's purpose (optional; can be an empty string if the meaning is unclear)",
       "lines": [start line, end line],
-      "source": "third-party" | "custom",
+      "source": "external" | "internal",
       "filepath": "thirdparty or file relative path",
       "alias": "alias (optional)",
       "is_wildcard": true | false
@@ -121,7 +121,7 @@ Please return the analysis results strictly in the following JSON format, withou
       "module_name": "module name (for Python)",
       "description": "description of the module's purpose (optional; can be an empty string if the meaning is unclear)",
       "lines": [start line, end line],
-      "source": "third-party" | "custom",
+      "source": "external" | "internal",
       "filepath": "thirdparty or file relative path",
       "items": ["list of imported items"],
       "alias": "alias (optional)"
@@ -339,8 +339,8 @@ When analyzing import statements, you need to infer the actual file paths based 
    - Import `import React from 'react'` → description: "React core library"
    - Parameter `function add(a: number, b: number)` → a's description: "the first addend", b's description: "the second addend"
    - If the meaning cannot be determined, description is an empty string ""
-7. For third-party library imports, mark source as "third-party" and use "thirdparty" for filepath
-8. For custom module imports, mark source as "custom" and use the inferred full relative path for filepath
+7. For third-party library imports, mark source as "external" and use "thirdparty" for filepath
+8. For custom module imports, mark source as "internal" and use the inferred full relative path for filepath
 9. class_id, variable_id, interface_id, etc. are generated using a combination of file path + name, e.g., "src/utils.ts:Date"
 10. function_id is generated using a combination of file path + name + parameters, e.g., "src/utils.ts:formatDate(date: Date)"
 11. Return only the JSON format, no other text

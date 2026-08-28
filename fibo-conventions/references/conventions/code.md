@@ -30,7 +30,27 @@ Mandatory requirements:
 - **Important functionality must have block comments**: at the entry of a function / class / module, explain "what it does + why + key constraints"
 - **Non-obvious logic must have inline comments**: magic numbers, special compatibility, worked-around bugs, performance trade-offs, etc.
 - No "code-translation style" comments (e.g. `// i increments by 1`)
-- Public API / exported functions: annotate parameters and return values with JSDoc / TSDoc
+- Functions, methods, classes, and public APIs in §2.1 must use language-native documentation comments that editor hover and signature help can display
+
+### 2.1 Editor-visible documentation comments (global rule)
+
+When adding or modifying a named function, method, class, or public API, write a documentation comment using a form recognized by the project's language server so IDEs such as VS Code can display it on symbol hover or in signature help. This is a documentation-comment rule, not a requirement to add ordinary inline comments or duplicate type annotations.
+
+- Prefer the repository's established documentation style; when none exists, use the language mapping below
+- At minimum, describe the declaration's responsibility; document non-obvious parameter semantics, return behavior, exceptions, boundary conditions, and side effects when applicable
+- Keep types in the language's type syntax when available; do not repeat type information that the signature already makes clear
+- Anonymous callbacks and semantically obvious trivial private helpers may omit documentation comments
+- An ordinary comment does not satisfy this rule unless it is the language's native documentation form recognized by the language server
+
+| Language | Documentation form |
+| --- | --- |
+| TypeScript / JavaScript | JSDoc / TSDoc `/** ... */` |
+| Python | A function or class docstring, with parameter and return type hints in the signature |
+| Java / Kotlin | Javadoc / KDoc |
+| Go | A declaration comment immediately above the symbol, beginning with the symbol name |
+| C / C++ | Doxygen-compatible `/** ... */` or `///` |
+| Rust | Rustdoc `///` |
+| Other languages | The native documentation-comment form supported by the project's language server |
 
 ---
 
@@ -187,7 +207,7 @@ Every time after writing / modifying code, **before** delivery (commit / wrap-up
 | # | Check item | Failure example |
 | --- | --- | --- |
 | K1 | Semantic naming, no `data` / `info` / `tmp` / `obj` / pinyin | `function handle(d)` ❌ |
-| K2 | The modified function's header / inline comments are still consistent with the new behavior (§3) | Changed the implementation, forgot the comment ❌ |
+| K2 | The modified function / method / class has the §2.1 documentation comment when required, and its header / inline comments are still consistent with the new behavior (§3) | Added a named function without an editor-visible documentation comment ❌ |
 | K3 | No "translation-style" comments (§2) | `// i increments by 1` ❌ |
 | K4 | **Comments where a key decision lands / a doc is needed to explain intent** use the §4.2 format, the spec/design line carries the **full relative path** + anchor; multiple references each on a line with an empty comment line between | `// task-09 use this` isolated number ❌ / `per spec.md AC-X` shorthand ❌ / only `spec.md#AC-03` without the directory ❌ / multiple references crammed onto consecutive lines ❌ |
 | K5 | **Ordinary utility functions / CRUD have no spec/design anchor crammed in** | Adding a spec line to `toKebab()` too ❌ |
@@ -199,8 +219,8 @@ If it passes, continue silently — no need to report passing checklist items to
 ---
 name: Code Writing Conventions
 
-update-time: 2026-06-30 04:36
+update-time: 2026-08-26 03:42
 
-description: The rules for writing / modifying any code: semantic naming, comments state WHY, the spec/design anchor full-relative-path format, multiple references arranged in the blank-line format friendly to JSDoc hover display, and the K1-K7 self-check before wrap-up
+description: The rules for writing or modifying code, including semantic naming, language-native editor-visible documentation comments, WHY-oriented comments, spec/design anchors, and the K1-K7 self-check
 
 ---

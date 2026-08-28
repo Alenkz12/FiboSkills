@@ -25,6 +25,13 @@ Mandatory constraints:
 - The meta-info block is fixed at the very end of the document body; if that artifact type also requires a `----------` terminator, the meta-info block goes before the `----------`.
 - Inside the meta-info block, each of `name`, `update-time`, `description` must keep one blank line below it; the line below `description` must also be blank before writing the closing separator `---`, ensuring clearer display; ordinary body paragraphs are not required to add an extra blank line per paragraph.
 
+### 0.1 Language of newly generated documents and drafts
+
+- A newly generated Markdown document and any user-visible draft of that document must use the language used by the user in the request that triggered its generation.
+- If the user explicitly requires an output language, that explicit requirement overrides the triggering request's language.
+- Templates define structure and fixed markers, not the output language. When instantiating a template, localize its human-readable headings, explanations, and filled content while preserving fixed technical tokens, code, paths, identifiers, standard tag prefixes, and format markers.
+- When modifying an existing document rather than generating a new one, preserve its existing language unless the user explicitly requests translation or a language change.
+
 ## 1. Key logic must be expressed with Mermaid
 
 **Scope (important)**: this rule **applies only to the scenario of "generating / modifying MD documents"**. Everyday conversation replies, terminal output, code comments, commit messages, etc. **do not need Mermaid**; answer with normal text.
@@ -379,8 +386,8 @@ flowchart LR
 ---
 name: Markdown Document Writing Conventions
 
-update-time: 2026-07-01 05:57
+update-time: 2026-07-31 06:14
 
-description: The rules for writing / modifying any MD document: every generated MD must carry a name/update-time/description meta-info block at the end, keep one blank line below each of the three meta-info fields (incl. after description), key logic must use Mermaid, paths are relative and do not start with /, the class of the three jump tags code / document / graph is enforced
+description: The rules for writing / modifying any MD document: newly generated documents and drafts follow the triggering user request's language unless explicitly overridden; every generated MD carries a name/update-time/description meta-info block; Mermaid, relative-path, and code/document/graph jump-tag rules are enforced
 
 ---

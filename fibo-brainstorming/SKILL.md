@@ -54,8 +54,9 @@ flowchart TD
 4. **One question at a time, multiple-choice preferred**: if you can offer (A)/(B)/(C) options, don't ask open-ended questions
 5. **Only ask trade-off questions**: if one candidate is clearly better (matches user intent / is a better design / lower risk), decide it directly, **no need to consult**; only ask the user when a real trade-off exists (each has pros and cons / it affects the AC direction)
 6. **Open questions do not enter the spec**: all questions are settled within the dialogue; you **must not** write `Open questions` / `TBD` wording into the on-disk spec.md
-7. **Confirm in small chunks**: don't dump the complete spec all at once; go chunk by chunk in the order "scope → intent → AC → boundaries → self-review"
+7. **Generate one complete draft after clarification**: ask only the clarification questions that are actually needed; once they are settled, or when the request is already sufficiently specified, generate the complete spec draft in one response for sign-off. Do not ask the user to confirm scope, intent, AC, or boundaries in separate chunks
 8. **Stop and ask when something is ambiguous**, don't fill in the blanks for the user
+9. **Draft language follows the triggering request**: write the user-visible spec draft and the eventual on-disk spec in the language used by the user in the request that triggered this flow, unless the user explicitly requires another language. Keep fixed technical tokens, code, paths, identifiers, and format markers unchanged
 
 ---
 
@@ -66,11 +67,11 @@ flowchart TD
   A[User raises a need] --> S0[Step 0: Scope gate<br/>do we need to split into sub-projects?]
   S0 -->|Too big and user chooses to split| EPIC[Enter large-feature split mode<br/>see Step 0.5: first align the master spec<br/>then run the full chain per sub-feature]
   EPIC --> S1
-  S0 -->|Right size| S1[Step 1: Clarify intent<br/>single question + multiple-choice preferred ≤ 5 rounds]
+  S0 -->|Right size| S1[Step 1: Clarify intent only when needed<br/>single question + multiple-choice preferred; 0–5 rounds]
   S1 --> S2[Step 2: Candidate AC<br/>EARS syntax + numbering]
   S2 --> S3[Step 3: Boundaries and Non-goals]
   S3 --> S4[Step 4: Resolve trade-off questions in dialogue<br/>discussed only in dialogue, settled once discussed<br/>does not enter the spec]
-  S4 --> S5[Step 5: Draft spec skeleton<br/>shown only in dialogue]
+  S4 --> S5[Step 5: Complete spec draft<br/>shown only in dialogue]
   S5 --> S55[Step 5.5: Pre-disk self-review<br/>run self-review checklist<br/>stay silent if it passes]
   S55 -->|Issue found| S2
   S55 -->|Passed| S6{Step 6: User sign-off?}
@@ -144,7 +145,9 @@ flowchart TD
 - If you can list options, list options; open-ended questions are only for "add anything else"
 - Total rounds ≤ 5 (including follow-ups); exceeding it means the scope isn't aligned → go back to Step 0
 
-**6 candidate questions (pick 1–5 as needed, ask in order)**:
+**6 candidate questions (pick 0–5 as needed, ask in order)**:
+
+If the request already contains enough information to define testable AC and boundaries, ask none of these questions and proceed directly to Steps 2–5.5, then present the complete draft for sign-off.
 
 1. **Who**: Who are the users?
    - (A) In-project developers (B) End users (C) CI / automation (D) Other, please specify
@@ -232,9 +235,9 @@ Q1: How to handle a file conflict?
 
 ---
 
-## Step 5: Draft the spec.md skeleton (shown only in dialogue, not written to disk)
+## Step 5: Generate the complete spec.md draft (shown only in dialogue, not written to disk)
 
-Organize it per the structure of `references/spec.template.md` (maintained by `fibo-conventions`). Minimal skeleton:
+Organize it per the structure of `references/spec.template.md` (maintained by `fibo-conventions`). Use the following skeleton as the required structure, fill every applicable section, and present the complete result in one response:
 
 ```markdown
 # {Feature display name}
@@ -315,7 +318,7 @@ After sign-off passes, **auto-chain execution** (no need to ask the user again, 
 - ❌ Do not do a git commit at this stage
 - ❌ Do not casually ask the user: when a candidate has an obvious winner, decide directly; **only ask when a real trade-off exists**
 - ❌ Do not write an `Open questions` section into the on-disk spec.md — all questions are settled in the Step 4 dialogue
-- ❌ Do not dump the complete spec in one go — confirm chunk by chunk (scope → intent → AC → boundaries → self-review)
+- ❌ Do not ask the user to confirm scope / intent / AC / boundaries chunk by chunk — after all necessary clarification is settled, or immediately when the request is already sufficiently specified, present the complete spec draft in one response for sign-off
 - ❌ Do not ask more than 1 question at a time; do not ask ≥ 5 open-ended questions at once
 - ❌ Do not skip the Step 5.5 self-review and show the draft to the user directly
 - ❌ After Step 5.5 passes, **do not** report the passing checklist items to the user (silently let it through)
@@ -344,8 +347,8 @@ Do not mix the stages of the two skills. The "sign-off" action completed by this
 ---
 name: Fibo brainstorming pre-stage skill
 
-update-time: 2026-07-08 02:28
+update-time: 2026-07-31 06:14
 
-description: Conventions for AC clarification, spec-draft sign-off, large-feature splitting, and the entry into subsequent chaining before a behavior change or new feature enters implementation
+description: Conventions for targeted AC clarification, request-language complete-spec drafting and sign-off, large-feature splitting, and the entry into subsequent chaining before a behavior change or new feature enters implementation
 
 ---

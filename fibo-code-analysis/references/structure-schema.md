@@ -49,7 +49,7 @@ Mandatory requirements:
 | Field group | Fields | Notes |
 | --- | --- | --- |
 | Basic | `file_name` `file_path` `description` `file_type` `language` | Required basic info |
-| Imports | `import_class` `import_function` `import_variable` `import_package` `import_module` | Each item has `source` (third-party lib / custom lib), `filepath` (thirdparty or an inferred relative path), `lines` |
+| Imports | `import_class` `import_function` `import_variable` `import_package` `import_module` | Each item has `source` (external / internal), `filepath` (thirdparty or an inferred relative path), `lines` |
 | Definitions | `function` `classes` `interfaces` `enums` `structs` `traits` `protocols` | Functions / classes / interfaces / enums / structs / traits / protocols |
 | Other | `global_variables` `constants` `macros` `type_aliases` `decorators` `annotations` | Global variables / constants / macros / type aliases / decorators / annotations |
 

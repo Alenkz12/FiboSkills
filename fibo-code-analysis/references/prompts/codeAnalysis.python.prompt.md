@@ -54,7 +54,7 @@ You are a professional Python code analysis expert, skilled at analyzing the str
 
 ## Output Format
 
-**Symbol notation**: In the JSON examples, the `|` symbol is used to indicate optional enum values. For example, `"source": "third-party" | "custom"` means the value of this field can only be one of "third-party" or "custom". `true | false` indicates a boolean value.
+**Symbol notation**: In the JSON examples, the `|` symbol is used to indicate optional enum values. For example, `"source": "external" | "internal"` means the value of this field can only be one of "external" or "internal". `true | false` indicates a boolean value.
 
 Return JSON containing the following fields (if there is no relevant content, omit the field or return an empty array):
 
@@ -70,7 +70,7 @@ Return JSON containing the following fields (if there is no relevant content, om
       "module_name": "module name",
       "description": "description of the module's purpose (optional; can be an empty string if the meaning is unclear)",
       "lines": [line number, line number],
-      "source": "third-party" | "custom",
+      "source": "external" | "internal",
       "filepath": "thirdparty or relative path",
       "items": ["imported object 1", "imported object 2"],
       "alias": "alias"
@@ -81,7 +81,7 @@ Return JSON containing the following fields (if there is no relevant content, om
       "class_name": "class name",
       "description": "description of the class's purpose (optional; can be an empty string if the meaning is unclear)",
       "lines": [line number, line number],
-      "source": "third-party" | "custom",
+      "source": "external" | "internal",
       "filepath": "thirdparty or relative path",
       "alias": "alias"
     }
@@ -91,7 +91,7 @@ Return JSON containing the following fields (if there is no relevant content, om
       "function_name": "function name",
       "description": "description of the function's purpose (optional; can be an empty string if the meaning is unclear)",
       "lines": [line number, line number],
-      "source": "third-party" | "custom",
+      "source": "external" | "internal",
       "filepath": "thirdparty or relative path",
       "alias": "alias"
     }
@@ -173,9 +173,9 @@ Return JSON containing the following fields (if there is no relevant content, om
 2. **Description field requirements**: All imported classes, functions, modules, and function parameters should have a description field. If the purpose can be inferred from the code, comments, or naming, provide a concise description; if the meaning is unclear, description can be an empty string ""
 3. **Line number range rule**: For the lines field, when the start line and end line of a code element are on the same line, the start line should equal the end line. For example: a single-line import statement should be [5, 5], not [5]
 4. **Module imports**:
-   - Standard library (e.g., os, sys, json) is marked as "third-party"
-   - Third-party packages (e.g., numpy, pandas, django) are marked as "third-party"
-   - Relative imports and in-project modules are marked as "custom"
+   - Standard library (e.g., os, sys, json) is marked as "external"
+   - Third-party packages (e.g., numpy, pandas, django) are marked as "external"
+   - Relative imports and in-project modules are marked as "internal"
 5. **Class method types**:
    - Regular method: the first parameter is self
    - Class method: uses @classmethod, the first parameter is cls

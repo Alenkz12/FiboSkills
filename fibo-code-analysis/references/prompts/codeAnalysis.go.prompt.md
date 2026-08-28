@@ -55,7 +55,7 @@ You are a professional Go code analysis expert, skilled at analyzing the structu
 
 ## Output Format
 
-**Symbol notation**: In the JSON examples, the `|` symbol is used to indicate optional enum values. For example, `"source": "third-party" | "custom"` means the value of this field can only be one of "third-party" or "custom". `true | false` indicates a boolean value.
+**Symbol notation**: In the JSON examples, the `|` symbol is used to indicate optional enum values. For example, `"source": "external" | "internal"` means the value of this field can only be one of "external" or "internal". `true | false` indicates a boolean value.
 
 Return JSON containing the following fields (if there is no relevant content, omit the field or return an empty array):
 
@@ -71,7 +71,7 @@ Return JSON containing the following fields (if there is no relevant content, om
       "package_name": "package path (e.g., github.com/user/repo)",
       "description": "description of the package's purpose (optional; can be an empty string if the meaning is unclear)",
       "lines": [line number, line number],
-      "source": "third-party" | "custom",
+      "source": "external" | "internal",
       "filepath": "thirdparty or relative path",
       "alias": "alias"
     }
@@ -164,9 +164,9 @@ Return JSON containing the following fields (if there is no relevant content, om
 3. **Line number range rule**: For the lines field, when the start line and end line of a code element are on the same line, the start line should equal the end line. For example: a single-line import statement should be [5, 5], not [5]
 4. **Package declaration**: The package declaration determines the package the file belongs to
 5. **Import paths**:
-   - Standard library (e.g., fmt, os, net/http) is marked as "third-party"
-   - Third-party packages (full path) are marked as "third-party"
-   - In-project packages (relative path or module path) are marked as "custom"
+   - Standard library (e.g., fmt, os, net/http) is marked as "external"
+   - Third-party packages (full path) are marked as "external"
+   - In-project packages (relative path or module path) are marked as "internal"
 6. **Method receivers**:
    - Record the receiver type of the method
    - Distinguish between value receivers and pointer receivers (*Type)
