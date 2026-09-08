@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # sync-helper.sh — Fibo reverse-sync helper (POSIX side)
 #
-# Subcommands (see spec AC-10..AC-28):
+# Subcommands:
+#   ensure-index                           Create/reconcile .fibo/index.json v2
 #   list-repos                              List repos with uncommitted-status flag
 #   list-changes                            List changed files across all repos
 #   get-diff --repo <p> --file <f>          Print unified diff of a single file
 #   update-index --repo <p> --hash <40SHA>  Advance .fibo/index.json sync baseline
 #
-# Output: JSON / unified diff to stdout. Only update-index writes a file
-# (.fibo/index.json). No git mutations beyond read-only queries.
+# Output: JSON / unified diff to stdout. Only ensure-index and update-index write
+# .fibo/index.json. No git mutations beyond read-only queries.
 #
-# Reference: .fibo/docs/specs/fibo-index-v2-sync-scripts/spec.md
+# Skill-root contract: references/conventions/commit-sync.md sections 2-4.
 set -u
 
 # ─── Path discovery ──────────────────────────────────────────────────
@@ -32,7 +33,7 @@ REPO_ROOT="$(discoverRepoRoot)"
 INDEX_FILE="${REPO_ROOT}/.fibo/index.json"
 
 # ─── Argument validation ─────────────────────────────────────────────
-# Shell-injection blacklist applies to every user-supplied arg (AC-23).
+# Reject shell metacharacters in every user-supplied argument before dispatch.
 rejectUnsafeArg() {
   local v="$1"
   case "${v}" in
@@ -44,7 +45,7 @@ rejectUnsafeArg() {
   fi
 }
 
-# Path / file blacklist (AC-21): no `..` segment, no absolute path
+# Path / file blacklist: no `..` segment and no absolute path.
 validatePathArg() {
   local v="$1"
   case "${v}" in
@@ -52,7 +53,7 @@ validatePathArg() {
   esac
 }
 
-# Hash format (AC-18): exactly 40 lowercase hex chars
+# Hash format: exactly 40 lowercase hexadecimal characters.
 validateHashArg() {
   local v="$1"
   if ! printf '%s' "${v}" | LC_ALL=C grep -qE '^[0-9a-f]{40}$'; then
@@ -60,18 +61,30 @@ validateHashArg() {
   fi
 }
 
-# ─── Schema check (AC-06) ────────────────────────────────────────────
+# ─── Schema check ────────────────────────────────────────────────────
 assertSchemaV2() {
   if [ ! -f "${INDEX_FILE}" ]; then
     printf 'schema mismatch, expected v2\n' >&2; exit 5
   fi
-  # Lightweight parse without jq dependency: must contain schemaVersion=2 and a repos field
-  if ! LC_ALL=C grep -q '"schemaVersion"[[:space:]]*:[[:space:]]*2' "${INDEX_FILE}"; then
-    printf 'schema mismatch, expected v2\n' >&2; exit 5
-  fi
-  if ! LC_ALL=C grep -q '"repos"[[:space:]]*:' "${INDEX_FILE}"; then
-    printf 'schema mismatch, expected v2\n' >&2; exit 5
-  fi
+  python3 - "${INDEX_FILE}" <<'PY'
+import json
+import sys
+
+try:
+    with open(sys.argv[1], 'r', encoding='utf-8') as index_file:
+        payload = json.load(index_file)
+except (OSError, ValueError):
+    print('schema mismatch, expected v2', file=sys.stderr)
+    raise SystemExit(5)
+
+if (
+    not isinstance(payload, dict)
+    or payload.get('schemaVersion') != 2
+    or not isinstance(payload.get('repos'), list)
+):
+    print('schema mismatch, expected v2', file=sys.stderr)
+    raise SystemExit(5)
+PY
 }
 
 # ─── index.json parsing ──────────────────────────────────────────────
@@ -87,7 +100,7 @@ for r in data.get('repos', []):
 PY
 }
 
-# ─── Binary-extension filter (AC-20) ─────────────────────────────────
+# ─── Binary-extension filter ─────────────────────────────────────────
 # Lowercase suffix match; empty path is never filtered.
 isBinaryExt() {
   local f="$1"
@@ -106,7 +119,7 @@ isBinaryExt() {
 }
 
 # ─── git wrappers ────────────────────────────────────────────────────
-# Always pass git args as an array via "$@" (AC-22), never via string concat.
+# Always pass git arguments as an array via "$@" to avoid string evaluation.
 gitIn() {
   # gitIn <repo-relative-path> <git-args...>
   local repo_rel="$1"; shift
@@ -151,9 +164,132 @@ emitRepoChanges() {
 
 # Tiny JSON escaper for string values (covers \, ", control chars)
 jsonEscape() {
-  python3 - <<PY
-import json,sys
-print(json.dumps(sys.stdin.read().rstrip('\n')))
+  # Pass the program with -c so stdin remains available for the piped value.
+  python3 -c 'import json, sys; print(json.dumps(sys.stdin.read()))'
+}
+
+# ─── Subcommand: ensure-index ────────────────────────────────────────
+# The distributed helper must not depend on project-local design documents.
+#
+# Missing indexes are initialized from repositories discovered at sync time.
+#
+# Existing valid v2 baselines are preserved for matching repositories.
+#
+# Malformed or unsupported indexes fail before the existing file is replaced.
+#
+# Synchronization owns this project metadata. Discovering repositories here
+# prevents terminal switches from changing document-sync state, while validating
+# before writing protects an existing baseline from destructive replacement.
+cmdEnsureIndex() {
+  python3 - "${REPO_ROOT}" "${INDEX_FILE}" <<'PY'
+import json
+import os
+from pathlib import Path
+import sys
+
+workspace_root = Path(sys.argv[1])
+index_path = Path(sys.argv[2])
+max_scan_depth = 3
+ignored_directory_names = {
+    'node_modules', 'vendor', 'third_party', 'external', 'extern', 'deps',
+    'dist', 'build', 'out', 'output', 'release', 'debug', 'target', 'bin',
+    'obj', 'generated', 'gen', '__pycache__', '.pytest_cache', '.mypy_cache',
+    '.ruff_cache', '.npm', '.pnpm-store', '.yarn', '.parcel-cache', '.next',
+    '.nuxt', '.svelte-kit', '.gradle', '.dart_tool', 'coverage', '.nyc_output',
+    '.cache', '.temp', 'tmp', 'temp', '.git', '.DS_Store',
+}
+
+
+def exit_with_schema_mismatch():
+    print('schema mismatch, expected v2', file=sys.stderr)
+    raise SystemExit(5)
+
+
+def discover_repo_paths():
+    repo_paths = []
+    if (workspace_root / '.git').exists():
+        repo_paths.append('.')
+
+    def walk(directory, relative_directory, depth):
+        if depth > max_scan_depth:
+            return
+        try:
+            entries = list(os.scandir(directory))
+        except OSError:
+            return
+
+        for entry in entries:
+            if not entry.is_dir(follow_symlinks=False):
+                continue
+            if entry.name in ignored_directory_names:
+                continue
+
+            relative_path = (
+                entry.name
+                if not relative_directory
+                else f'{relative_directory}/{entry.name}'
+            )
+            child_directory = Path(entry.path)
+            if (child_directory / '.git').exists():
+                repo_paths.append(relative_path)
+            walk(child_directory, relative_path, depth + 1)
+
+    walk(workspace_root, '', 1)
+    return sorted(set(repo_paths))
+
+
+existing_payload = None
+existing_baselines = {}
+if index_path.exists():
+    try:
+        with index_path.open('r', encoding='utf-8') as index_file:
+            existing_payload = json.load(index_file)
+    except (OSError, ValueError):
+        exit_with_schema_mismatch()
+
+    if (
+        not isinstance(existing_payload, dict)
+        or existing_payload.get('schemaVersion') != 2
+        or not isinstance(existing_payload.get('repos'), list)
+    ):
+        exit_with_schema_mismatch()
+
+    for repo_entry in existing_payload['repos']:
+        if not isinstance(repo_entry, dict) or not isinstance(repo_entry.get('path'), str):
+            continue
+        last_sync_hash = repo_entry.get('lastSyncHash', '')
+        last_sync_time = repo_entry.get('lastSyncTime', '')
+        existing_baselines[repo_entry['path']] = {
+            'lastSyncHash': last_sync_hash if isinstance(last_sync_hash, str) else '',
+            'lastSyncTime': last_sync_time if isinstance(last_sync_time, str) else '',
+        }
+
+repos = []
+for repo_path in discover_repo_paths():
+    baseline = existing_baselines.get(repo_path, {})
+    repos.append({
+        'path': repo_path,
+        'lastSyncHash': baseline.get('lastSyncHash', ''),
+        'lastSyncTime': baseline.get('lastSyncTime', ''),
+    })
+
+next_payload = {'schemaVersion': 2, 'repos': repos}
+if existing_payload == next_payload:
+    raise SystemExit(0)
+
+temporary_path = index_path.with_name(f'{index_path.name}.tmp-{os.getpid()}')
+try:
+    with temporary_path.open('w', encoding='utf-8') as temporary_file:
+        json.dump(next_payload, temporary_file, indent=2, ensure_ascii=False)
+        temporary_file.write('\n')
+    os.replace(temporary_path, index_path)
+except OSError as error:
+    try:
+        temporary_path.unlink()
+    except OSError:
+        pass
+    print(f'failed to write .fibo/index.json: {error}', file=sys.stderr)
+    raise SystemExit(8)
 PY
 }
 
@@ -162,14 +298,14 @@ cmdListRepos() {
   assertSchemaV2
   local first=1
   printf '['
-  parseRepos | while IFS=$'\t' read -r path _hash _time; do
+  while IFS=$'\t' read -r path _hash _time; do
     [ -z "${path}" ] && continue
     local dirty
     dirty="$(hasUncommitted "${path}")"
     if [ ${first} -eq 1 ]; then first=0; else printf ','; fi
     printf '{"path":%s,"hasUncommittedChanges":%s}' \
       "$(printf '%s' "${path}" | jsonEscape)" "${dirty}"
-  done
+  done < <(parseRepos)
   printf ']\n'
 }
 
@@ -178,21 +314,21 @@ cmdListChanges() {
   assertSchemaV2
   local first=1
   printf '['
-  parseRepos | while IFS=$'\t' read -r path hash _time; do
+  while IFS=$'\t' read -r path hash _time; do
     [ -z "${path}" ] && continue
-    emitRepoChanges "${path}" "${hash}" | while IFS=$'\t' read -r repo file status; do
+    while IFS=$'\t' read -r repo file status; do
       if [ ${first} -eq 1 ]; then first=0; else printf ','; fi
       printf '{"repo":%s,"file":%s,"status":%s}' \
         "$(printf '%s' "${repo}" | jsonEscape)" \
         "$(printf '%s' "${file}" | jsonEscape)" \
         "$(printf '"%s"' "${status}")"
-    done
-  done
+    done < <(emitRepoChanges "${path}" "${hash}")
+  done < <(parseRepos)
   printf ']\n'
 }
 
 # ─── Subcommand: get-diff ────────────────────────────────────────────
-# Empty output + exit 0 if file is not in the changed list (AC-19).
+# A file outside the changed list is a successful no-op with empty output.
 cmdGetDiff() {
   assertSchemaV2
   local target_repo="" target_file=""
@@ -224,7 +360,7 @@ cmdGetDiff() {
   done
   if [ $? -eq 99 ]; then in_list=1; fi
   if [ ${in_list} -eq 0 ]; then
-    # Not in change list — silent success per AC-19
+    # Absence from the change list is a successful no-op.
     exit 0
   fi
 
@@ -236,7 +372,7 @@ cmdGetDiff() {
 }
 
 # ─── Subcommand: update-index ────────────────────────────────────────
-# Bumps lastSyncHash/lastSyncTime for one repo. Does NOT touch git (AC-16).
+# Bumps lastSyncHash/lastSyncTime for one repo without mutating git.
 cmdUpdateIndex() {
   assertSchemaV2
   local target_repo="" new_hash=""
@@ -276,7 +412,7 @@ PY
 
 # ─── Dispatch ────────────────────────────────────────────────────────
 if [ $# -lt 1 ]; then
-  printf 'usage: sync-helper.sh <list-repos|list-changes|get-diff|update-index> [args]\n' >&2
+  printf 'usage: sync-helper.sh <ensure-index|list-repos|list-changes|get-diff|update-index> [args]\n' >&2
   exit 1
 fi
 
@@ -285,6 +421,7 @@ SUB="$1"; shift
 for a in "$@"; do rejectUnsafeArg "${a}"; done
 
 case "${SUB}" in
+  ensure-index)  cmdEnsureIndex ;;
   list-repos)    cmdListRepos ;;
   list-changes)  cmdListChanges ;;
   get-diff)      cmdGetDiff "$@" ;;

@@ -1,6 +1,6 @@
 ---
 name: fibo-executing-plan
-description: Use AFTER plan.md is produced by fibo-writing-plan and BEFORE you want code changes. Executes tasks from .fibo/docs/specs/<feature>/plan.md in strict serial order (no concurrency, to avoid file-write conflicts). If total tasks ≥ 5 dispatches each to a general-purpose subagent (sequentially, not in parallel); else runs in main context. Injects each task's involved-files list into the executor prompt with a "do not modify files outside the list" instruction (no post-hoc enforcement — relies on prompt compliance, per design D3). Recommends RED-GREEN TDD only for tasks tagged `prod-code` (non-blocking). On task failure, pauses + asks user with 3 options (skip / abort / retry) — does NOT auto-rollback. On full completion, prints an implementation-complete report listing all touched files, then directly invokes fibo-recording-diff before fibo-conventions commit-sync without asking the user to confirm the diff step. Does NOT touch git (no add/commit/push) and does NOT depend on the project being a git repo. Pairs with fibo-writing-plan (upstream), fibo-recording-diff (post-implementation diff record), and fibo-conventions (downstream sync).
+description: Use after fibo-writing-plan produces `.fibo/docs/specs/{feature}/plan.md` and before implementation. Executes tasks serially, using the main context for fewer than 5 tasks and sequential general-purpose subagents for 5 or more. Enforces each task's involved-file boundary through the executor prompt, recommends RED-GREEN TDD only for `prod-code`, pauses on failure for the user's skip/abort/retry choice without rollback, then invokes fibo-recording-diff and hands off to fibo-conventions. Does not run git writes and does not require a git repository.
 ---
 
 # Fibo executing-plan skill (executing-plan)
@@ -28,7 +28,7 @@ description: Use AFTER plan.md is produced by fibo-writing-plan and BEFORE you w
 
 1. **Tasks run in order, no concurrency**: to avoid file-write conflicts
 2. **No dependency on git**: this project may not be a git repo; this skill does not do `status` / `diff` / `commit`
-3. **Prompt-injected constraint, no post-hoc verification**: the constraint is enforced by writing the task's involved-files list + "do not modify files outside the list" into the executor prompt (per design D3)
+3. **Prompt-injected constraint, no post-hoc verification**: enforce the boundary by writing the task's involved-files list + "do not modify files outside the list" into the executor prompt
 4. **Pause on failure, no rollback**: on any task failure, stop immediately and let the user choose; do not auto-rollback completed tasks
 5. **prod-code recommends TDD, others not enforced**: attach a TDD recommendation only when the task's tags include `prod-code`
 
@@ -72,7 +72,6 @@ Read the "Task list" section of plan.md and count `### task-` lines = N.
 - **N ≥ 5** → in Step 2, dispatch one Agent tool call per task (`subagent_type: general-purpose`), **sequential, serial** (no concurrency)
 - **N < 5** → in Step 2, execute directly in the main context (avoiding subagent call overhead)
 
-↔ AC-B2
 
 ---
 
@@ -87,9 +86,8 @@ Whether in the main context or a subagent, the prompt the executor receives **mu
 - The **hard-constraint sentence**: "Do not modify any file outside the list"
 - If the task's tags include `prod-code`: append "It is recommended to first write a failing test (RED), then implement (GREEN), and finally clean up (REFACTOR), but it is not enforced"
 - The spec.md / design.md paths (let the executor Read them itself, to avoid polluting the main context)
-- **Code-comment convention reference**: the prompt must state explicitly "Follow the comment convention in §4 of `.claude/skills/fibo-conventions/references/conventions/code.md`; when a key decision is implemented / when a doc must be cited to explain intent, use the `spec:` / `design:` line format, and **the anchor path must be a full relative path** (e.g. `spec: .fibo/docs/specs/<feature>/spec.md#AC-X`); shorthand like `per spec.md AC-X` is forbidden, and isolated numbers like `task-09` / `D5` are forbidden; multiple `spec:` / `design:` references must each be on their own separate line, with one empty comment line kept between reference lines, to ensure the IDE mouse-hover tooltip displays them on separate lines". A subagent cannot access the main context's memory, so the rules must be written into the prompt explicitly
+- **Code-comment convention reference**: the prompt must state explicitly "Follow §4 of the `fibo-conventions` resource `references/conventions/code.md`; when a key decision is implemented / when a doc must be cited to explain intent, use the `spec:` / `design:` line format, and **the anchor path must be a full relative path** (e.g. `spec: .fibo/docs/specs/<feature>/spec.md#AC-X`); shorthand like `per spec.md AC-X` is forbidden, and isolated numbers like `task-09` / `D5` are forbidden; multiple `spec:` / `design:` references must each be on their own separate line, with one empty comment line kept between reference lines, to ensure the IDE mouse-hover tooltip displays them on separate lines". A subagent cannot access the main context's memory, so the rules must be written into the prompt explicitly
 
-↔ AC-B3, AC-B4
 
 ### 2b. Execute + mark [√]
 
@@ -102,11 +100,10 @@ Run the task's "acceptance method" command (e.g. `ls -la <path>` / `grep "x" <pa
 - Acceptance passes → move to the next task (or, if all are done, proceed to Step 4)
 - Acceptance fails → mark `[!] failed`, proceed to Step 3 failure handling
 
-↔ AC-B1
 
 ---
 
-## Step 3: Failure handling (per design D5)
+## Step 3: Failure handling
 
 On any task failure → **do not continue, do not roll back**, give the user 3 options:
 
@@ -142,7 +139,6 @@ Next steps:
 - Or continue with the next feature
 ```
 
-↔ AC-B5
 
 ---
 
@@ -150,7 +146,7 @@ Next steps:
 
 - ❌ Do not run tasks concurrently (sequential, serial)
 - ❌ Do not enter this skill while plan.md is unsigned
-- ❌ Do not do post-hoc verification of file out-of-bounds (D3 already decided to rely on prompt constraint)
+- ❌ Do not add a post-hoc file-boundary verification step; this workflow intentionally enforces the boundary through the executor prompt
 - ❌ Do not auto-rollback a failed task's code changes
 - ❌ Do not run `git add` / `git commit` / `git push` in any task
 - ❌ Do not force non-`prod-code` tasks to write tests
@@ -176,7 +172,7 @@ flowchart LR
 ---
 name: Fibo executing-plan skill
 
-update-time: 2026-07-01 05:16
+update-time: 2026-09-08 04:58
 
 description: Implement serially per plan.md, then directly enter recording-diff after completion, then hand off to commit-sync
 

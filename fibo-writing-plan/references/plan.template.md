@@ -3,15 +3,15 @@
 > **Purpose**: translate the AC in spec.md into an executable task list, consumed by `fibo-executing-plan`.
 > **Location**: `.fibo/docs/specs/<feature-slug>/plan.md`
 
-## 1. AC coverage self-review (writing-plan AC-A5 / AC-A6 pre-disk check)
+## 1. AC coverage self-review before writing to disk
 
 | AC | Covering task |
 | --- | --- |
 | AC-XX | task-NN |
 | AC-YY | task-MM |
 
-- ✓ AC coverage NN / NN = 100% (AC-A5 passed)
-- ✓ All AC referenced by tasks are within the spec, no out-of-bounds (AC-A6 passed)
+- ✓ AC coverage NN / NN = 100%
+- ✓ All AC referenced by tasks are within the spec, with no out-of-bounds references
 - ℹ Tasks marked "integrative" do not participate in the judgment (involved-AC field is `-`)
 
 ## 2. Task list
@@ -35,11 +35,11 @@
 
 Execute in the order task-01 → task-NN. Explain inter-task dependencies (if any).
 
-Total task count = N (dispatch subagents per design D4 when ≥ 5; execute in main context when < 5).
+Total task count = N (dispatch subagents when ≥ 5; execute in the main context when < 5).
 
 ## 4. Failure handling
 
-per design D5: on any task failure → mark `[!] failed` + pause + give the user 3 options (a) skip (b) abort (c) retry after fixing. No auto-rollback.
+On any task failure → mark `[!] failed` + pause + give the user 3 options: (a) skip, (b) abort, or (c) retry after fixing. No auto-rollback.
 
 ---
 

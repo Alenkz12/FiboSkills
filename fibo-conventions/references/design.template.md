@@ -5,7 +5,7 @@
 > - Single-feature internal design → `.fibo/docs/specs/<feature>/design.md` (or `design/<topic>.md` when complex)
 > - Cross-feature global design → `.fibo/docs/architecture/<topic>.md`
 >
-> **Mandatory constraint (per workflow-pipeline AC-C2)**: in Section 2 "Key design decisions", **each decision** must be tagged at the end with `↔ AC-NN` (one or more, corresponding to the AC number in spec.md), realizing bidirectional design ↔ AC traceability. A decision paragraph with no AC attached is not allowed to be written.
+> **Mandatory constraint**: in Section 2 "Key design decisions", **each decision** must be tagged at the end with `↔ AC-NN` (one or more, corresponding to the AC number in spec.md), realizing bidirectional design ↔ AC traceability. A decision paragraph with no AC attached is not allowed to be written.
 
 ## 1. Goal
 
@@ -49,7 +49,7 @@ flowchart LR
 
 **Unchanged**: `path/a`, `path/b` (state why explicitly unchanged, to avoid accidental edits).
 
-> 📌 This section is the basis for the commit-sync `design.md consistency check` (per workflow-pipeline AC-D3): the paths declared "new/modified" in this section undergo a file-existence check at the commit-sync stage; missing means reporting `design.md: Updated (removed X)`.
+> 📌 This section is the basis for the commit-sync `design.md consistency check`: the paths declared "new/modified" in this section undergo a file-existence check at the commit-sync stage; missing means reporting `design.md: Updated (removed X)`.
 
 ## 4. Interface contracts
 

@@ -1,6 +1,7 @@
 ---
 name: fibo-writing-plan
-description: Use AFTER spec.md is signed (the meta-info block's update-time is not a placeholder) and BEFORE writing any production code. Reads .fibo/docs/specs/<feature>/spec.md, then produces design.md (HOW: 6 sections + each decision tagged ↔ AC) and plan.md (task list; each task includes involved AC / involved files / acceptance method) in the same directory. Refuses to run if spec.md missing or unsigned (AC-A1). Aborts writing to disk if any task references an AC not in spec.md (AC-A6) or if AC coverage < 100% (AC-A5). Each design decision must carry ↔ AC-NN tag (D6/AC-C2). Update-time uses the cross-OS command from fibo-conventions sync.md §2.2. If spec.md is an epic-level spec (contains a "## Sub-feature boundary" section), runs Epic mode instead: produces ONLY the split design.md (no plan.md), enforces 100% total-AC → sub-feature mapping coverage, then hands the first sub-feature back to fibo-brainstorming. Does NOT write code, run tests, or commit. Pairs with fibo-brainstorming (upstream) and fibo-executing-plan (downstream).
+description: >-
+  Use AFTER spec.md is signed (the meta-info block's update-time is not a placeholder) and BEFORE writing any production code. Reads .fibo/docs/specs/{feature}/spec.md, then produces design.md (HOW: 6 sections + each decision tagged ↔ AC) and plan.md (task list; each task includes involved AC / involved files / acceptance method) in the same directory. Refuses to run if spec.md is missing or unsigned. Aborts writing to disk if any task references an AC not in spec.md or if AC coverage is below 100%. Each design decision must carry an ↔ AC-NN tag. Update-time uses the cross-OS command from fibo-conventions sync.md §2.2. If spec.md is an epic-level spec (contains a "## Sub-feature boundary" section), runs Epic mode instead: produces ONLY the split design.md (no plan.md), enforces 100% total-AC → sub-feature mapping coverage, then hands the first sub-feature back to fibo-brainstorming. Does NOT write code, run tests, or commit. Pairs with fibo-brainstorming (upstream) and fibo-executing-plan (downstream).
 ---
 
 # Fibo writing-plan skill (writing-plan)
@@ -59,7 +60,7 @@ Read the trailing meta-info block of `.fibo/docs/specs/<feature>/spec.md`. Crite
 - The file exists
 - The `update-time` field is in `YYYY-MM-DD HH:mm` format, **not** a `{...}` placeholder or empty
 
-Unsigned → exit this skill and prompt the user to run `fibo-brainstorming` first. ↔ AC-A1
+Unsigned → exit this skill and prompt the user to run `fibo-brainstorming` first.
 
 ---
 
@@ -67,7 +68,7 @@ Unsigned → exit this skill and prompt the user to run `fibo-brainstorming` fir
 
 Use a regex to extract all numbers of the form `AC-[A-Z0-9]+` (compatible with `AC-01` / `AC-A1` / `AC-B2` and other naming styles). Aggregate into the set `SPEC_AC = {AC-A1, AC-A2, ...}`.
 
-Save each AC's title (`- **AC-XX**: ...`) as a mapping table, for reference in Steps 2 / 3, to avoid re-reading spec.md. ↔ AC-A2
+Save each AC's title (`- **AC-XX**: ...`) as a mapping table, for reference in Steps 2 / 3, to avoid re-reading spec.md.
 
 ---
 
@@ -82,7 +83,7 @@ Follow the 6-section structure of `fibo-conventions/references/design.template.m
 5. **Interaction with existing modules** — a table listing affected existing modules + degree of impact
 6. **Meta-info block** — `name` / `update-time` / `description` (`update-time` filled with system time)
 
-**Mandatory (D6 → AC-C2)**: every decision must carry `↔ AC-NN`; any decision paragraph without an AC attached is rejected from being written. ↔ AC-A3
+**Mandatory**: every decision must carry `↔ AC-NN`; any decision paragraph without an AC attached is rejected from being written.
 
 ---
 
@@ -101,7 +102,7 @@ Follow the `references/plan.template.md` skeleton:
    - Status (`[×]` not done / `[√]` done / `[!]` failed)
 3. **Execution order** + **failure handling**
 
-**Special allowance**: a task marked "integrative" (e.g. modifying an entry file, adding a README) may have empty involved AC, and does not participate in the AC coverage / out-of-bounds judgment. ↔ AC-A4
+**Special allowance**: a task marked "integrative" (e.g. modifying an entry file, adding a README) may have empty involved AC, and does not participate in the AC coverage / out-of-bounds judgment.
 
 ---
 
@@ -116,7 +117,7 @@ flowchart LR
   C2 -->|Yes| OK[Pass, proceed to Step 5]
 ```
 
-- On failure, **do not write any file to disk**; tell the user the missing / out-of-bounds list, go back to Step 3 to fix the plan, then re-run the self-review. ↔ AC-A5, AC-A6
+- On failure, **do not write any file to disk**; tell the user the missing / out-of-bounds list, go back to Step 3 to fix the plan, then re-run the self-review.
 
 ---
 
@@ -162,7 +163,7 @@ Extract key terms from spec.md (proper nouns / module names / config-item names 
 Cross-reference each task's "involved files" in plan.md against design.md's "file list":
 
 - If a task's involved file is **completely absent** from design.md's file list → this task may have no corresponding design decision → WARN
-- Tasks marked "integrative" are exempt (per AC-A4)
+- Tasks marked "integrative" are exempt
 
 > WARNING line format: `WARN-P3: task-NN <title> involved file <path> has no correspondence in design.md's file list`
 
@@ -251,7 +252,7 @@ flowchart LR
 ---
 name: Fibo writing-plan skill
 
-update-time: 2026-07-06 10:59
+update-time: 2026-09-08 04:56
 
 description: The flow for generating design.md and plan.md after spec.md is signed off, plus self-review, three-field meta-info, large-feature Epic mode (produces only the split design), and the convention for auto-entering the execution stage
 

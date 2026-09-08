@@ -1,6 +1,6 @@
 ---
 name: fibo-brainstorming
-description: Use this BEFORE any change that alters externally-visible behavior, AC, or contracts — including new features, new specs, AC modifications on existing specs, and "looks-like-bugfix-but-changes-behavior" cases. Runs a clarify → AC → draft → self-review → sign-off loop before any spec.md is created/modified under .fibo/docs/specs/. Produces a draft spec with AC in EARS syntax, asks ONE question at a time with multiple-choice when possible, and waits for explicit user sign-off. Does NOT write production code, does NOT run tests, does NOT commit anything. Pairs with fibo-conventions (which kicks in once the draft is approved and becomes a real .fibo/docs/specs/<feature>/spec.md).
+description: Use this BEFORE any change that alters externally-visible behavior, AC, or contracts — including new features, new specs, AC modifications on existing specs, and "looks-like-bugfix-but-changes-behavior" cases. Runs a clarify → AC → draft → self-review → sign-off loop before any spec.md is created/modified under .fibo/docs/specs/. Produces a draft spec with AC in EARS syntax, asks ONE question at a time with multiple-choice when possible, and waits for explicit user sign-off. Does NOT write production code, does NOT run tests, does NOT commit anything. Pairs with fibo-conventions (which kicks in once the draft is approved and becomes a real .fibo/docs/specs/{feature}/spec.md).
 ---
 
 # Fibo brainstorming pre-stage skill
@@ -347,7 +347,7 @@ Do not mix the stages of the two skills. The "sign-off" action completed by this
 ---
 name: Fibo brainstorming pre-stage skill
 
-update-time: 2026-07-31 06:14
+update-time: 2026-09-08 04:56
 
 description: Conventions for targeted AC clarification, request-language complete-spec drafting and sign-off, large-feature splitting, and the entry into subsequent chaining before a behavior change or new feature enters implementation
 

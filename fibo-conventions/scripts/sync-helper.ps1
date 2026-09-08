@@ -1,15 +1,16 @@
 # sync-helper.ps1 - Fibo reverse-sync helper (Windows side)
 #
-# Mirrors sync-helper.sh exactly. Subcommands (see spec AC-10..AC-28):
+# Mirrors sync-helper.sh exactly. Subcommands:
+#   ensure-index                           Create/reconcile .fibo/index.json v2
 #   list-repos                              List repos with uncommitted-status flag
 #   list-changes                            List changed files across all repos
 #   get-diff --repo <p> --file <f>          Print unified diff of a single file
 #   update-index --repo <p> --hash <40SHA>  Advance .fibo/index.json sync baseline
 #
-# Output: JSON / unified diff to stdout. Only update-index writes a file
-# (.fibo/index.json). Requires PowerShell 5.1+ (built-in on Windows 10+).
+# Output: JSON / unified diff to stdout. Only ensure-index and update-index write
+# .fibo/index.json. Requires PowerShell 5.1+ (built-in on Windows 10+).
 #
-# Reference: .fibo/docs/specs/fibo-index-v2-sync-scripts/spec.md
+# Skill-root contract: references/conventions/commit-sync.md sections 2-4.
 
 $ErrorActionPreference = 'Stop'
 
@@ -31,7 +32,7 @@ $script:RepoRoot  = Find-RepoRoot
 $script:IndexFile = Join-Path $script:RepoRoot '.fibo/index.json'
 
 # --- Argument validation ---
-# Shell-injection blacklist applies to every user-supplied arg (AC-23).
+# Reject shell metacharacters in every user-supplied argument before dispatch.
 function Test-UnsafeArg([string]$v) {
     if ($v -match '[;|`&]' -or $v -match '\$\(' -or $v -match "`n" -or $v -match "`r") {
         [Console]::Error.WriteLine('rejected: unsafe argument')
@@ -39,7 +40,7 @@ function Test-UnsafeArg([string]$v) {
     }
 }
 
-# Path / file blacklist (AC-21): no `..` segment, no absolute path
+# Path / file blacklist: no `..` segment and no absolute path.
 function Test-PathArg([string]$v) {
     if ($v -match '^/' -or $v -match '^[A-Za-z]:') {
         [Console]::Error.WriteLine('rejected: unsafe argument'); exit 3
@@ -49,14 +50,14 @@ function Test-PathArg([string]$v) {
     }
 }
 
-# Hash format (AC-18): exactly 40 lowercase hex chars
+# Hash format: exactly 40 lowercase hexadecimal characters.
 function Test-HashArg([string]$v) {
     if ($v -notmatch '^[0-9a-f]{40}$') {
         [Console]::Error.WriteLine('invalid hash'); exit 4
     }
 }
 
-# --- Schema check (AC-06) ---
+# --- Schema validation ---
 function Assert-SchemaV2 {
     if (-not (Test-Path $script:IndexFile)) {
         [Console]::Error.WriteLine('schema mismatch, expected v2'); exit 5
@@ -72,7 +73,64 @@ function Assert-SchemaV2 {
     return $data
 }
 
-# --- Binary-extension filter (AC-20) ---
+# --- Repository discovery ---
+$script:MaxRepoScanDepth = 3
+$script:IgnoredDirectoryNames = [System.Collections.Generic.HashSet[string]]::new(
+    [System.StringComparer]::Ordinal
+)
+@(
+    'node_modules','vendor','third_party','external','extern','deps',
+    'dist','build','out','output','release','debug','target','bin','obj','generated','gen',
+    '__pycache__','.pytest_cache','.mypy_cache','.ruff_cache',
+    '.npm','.pnpm-store','.yarn','.parcel-cache','.next','.nuxt','.svelte-kit',
+    '.gradle','.dart_tool','coverage','.nyc_output','.cache','.temp','tmp','temp',
+    '.git','.DS_Store'
+) | ForEach-Object { [void]$script:IgnoredDirectoryNames.Add($_) }
+
+function Add-NestedRepoPaths {
+    param(
+        [string]$Directory,
+        [string]$RelativeDirectory,
+        [int]$Depth,
+        [System.Collections.Generic.List[string]]$RepoPaths
+    )
+    if ($Depth -gt $script:MaxRepoScanDepth) { return }
+
+    $entries = @(Get-ChildItem -LiteralPath $Directory -Directory -Force -ErrorAction SilentlyContinue)
+    foreach ($entry in $entries) {
+        if ($script:IgnoredDirectoryNames.Contains($entry.Name)) { continue }
+        if (($entry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) { continue }
+
+        $relativePath = if ([string]::IsNullOrEmpty($RelativeDirectory)) {
+            $entry.Name
+        } else {
+            "$RelativeDirectory/$($entry.Name)"
+        }
+        if (Test-Path -LiteralPath (Join-Path $entry.FullName '.git')) {
+            [void]$RepoPaths.Add($relativePath)
+        }
+        Add-NestedRepoPaths `
+            -Directory $entry.FullName `
+            -RelativeDirectory $relativePath `
+            -Depth ($Depth + 1) `
+            -RepoPaths $RepoPaths
+    }
+}
+
+function Get-RepoPaths {
+    $repoPaths = [System.Collections.Generic.List[string]]::new()
+    if (Test-Path -LiteralPath (Join-Path $script:RepoRoot '.git')) {
+        [void]$repoPaths.Add('.')
+    }
+    Add-NestedRepoPaths `
+        -Directory $script:RepoRoot `
+        -RelativeDirectory '' `
+        -Depth 1 `
+        -RepoPaths $repoPaths
+    return @($repoPaths | Sort-Object -Unique -CaseSensitive)
+}
+
+# --- Binary-extension filter ---
 $script:BinaryExts = @(
     '.png','.jpg','.jpeg','.gif','.webp','.ico','.bmp','.tiff',
     '.woff','.woff2','.ttf','.otf','.eot',
@@ -89,7 +147,7 @@ function Test-BinaryExt([string]$file) {
 }
 
 # --- git wrapper ---
-# Always pass git args as @() array (AC-22), never via string concat.
+# Always pass git arguments as an @() array to avoid string evaluation.
 function Invoke-GitIn {
     param(
         [string]$RepoRel,
@@ -148,6 +206,67 @@ function ConvertTo-CompactJson([object]$obj) {
     return (ConvertTo-Json -InputObject $obj -Compress -Depth 10)
 }
 
+# --- Subcommand: ensure-index ---
+# The distributed helper must not depend on project-local design documents.
+#
+# Missing indexes are initialized from repositories discovered at sync time.
+#
+# Existing valid v2 baselines are preserved for matching repositories.
+#
+# Malformed or unsupported indexes fail before the existing file is replaced.
+#
+# Synchronization owns this project metadata. Discovering repositories here
+# prevents terminal switches from changing document-sync state, while validating
+# before writing protects an existing baseline from destructive replacement.
+function Invoke-EnsureIndex {
+    $existingPayload = $null
+    $existingBaselines = @{}
+    if (Test-Path -LiteralPath $script:IndexFile) {
+        $existingPayload = Assert-SchemaV2
+        foreach ($repoEntry in @($existingPayload.repos)) {
+            if ($repoEntry.path -isnot [string]) { continue }
+            $lastSyncHash = if ($repoEntry.lastSyncHash -is [string]) {
+                $repoEntry.lastSyncHash
+            } else { '' }
+            $lastSyncTime = if ($repoEntry.lastSyncTime -is [string]) {
+                $repoEntry.lastSyncTime
+            } else { '' }
+            $existingBaselines[$repoEntry.path] = [pscustomobject]@{
+                lastSyncHash = $lastSyncHash
+                lastSyncTime = $lastSyncTime
+            }
+        }
+    }
+
+    $repos = @()
+    foreach ($repoPath in @(Get-RepoPaths)) {
+        $lastSyncHash = ''
+        $lastSyncTime = ''
+        if ($existingBaselines.ContainsKey($repoPath)) {
+            $lastSyncHash = $existingBaselines[$repoPath].lastSyncHash
+            $lastSyncTime = $existingBaselines[$repoPath].lastSyncTime
+        }
+        $repos += [pscustomobject][ordered]@{
+            path = $repoPath
+            lastSyncHash = $lastSyncHash
+            lastSyncTime = $lastSyncTime
+        }
+    }
+
+    $nextPayload = [pscustomobject][ordered]@{
+        schemaVersion = 2
+        repos = @($repos)
+    }
+    $json = ConvertTo-Json -InputObject $nextPayload -Depth 10
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    try {
+        [System.IO.File]::WriteAllText($script:IndexFile, $json + "`n", $utf8NoBom)
+    } catch {
+        [Console]::Error.WriteLine("failed to write .fibo/index.json: $($_.Exception.Message)")
+        exit 8
+    }
+}
+
 # --- Subcommand: list-repos ---
 function Invoke-ListRepos {
     $data = Assert-SchemaV2
@@ -173,7 +292,7 @@ function Invoke-ListChanges {
 }
 
 # --- Subcommand: get-diff ---
-# Empty output + exit 0 if file is not in the changed list (AC-19).
+# A file outside the changed list is a successful no-op with empty output.
 function Invoke-GetDiff([string[]]$Rest) {
     $data = Assert-SchemaV2
     $targetRepo = ''; $targetFile = ''
@@ -195,7 +314,7 @@ function Invoke-GetDiff([string[]]$Rest) {
 
     $changes = Get-RepoChanges -RepoRel $targetRepo -Base $match.lastSyncHash
     $hit = $changes | Where-Object { $_.file -eq $targetFile } | Select-Object -First 1
-    if (-not $hit) { return }   # AC-19: silent success
+    if (-not $hit) { return }   # Absence from the change list is a successful no-op.
 
     if ([string]::IsNullOrEmpty($match.lastSyncHash)) {
         $diff = Invoke-GitIn -RepoRel $targetRepo -Args @('show','HEAD','--',$targetFile)
@@ -206,7 +325,7 @@ function Invoke-GetDiff([string[]]$Rest) {
 }
 
 # --- Subcommand: update-index ---
-# Bumps lastSyncHash/lastSyncTime for one repo. Does NOT touch git (AC-16).
+# Bumps lastSyncHash/lastSyncTime for one repo without mutating git.
 function Invoke-UpdateIndex([string[]]$Rest) {
     $data = Assert-SchemaV2
     $targetRepo = ''; $newHash = ''
@@ -242,7 +361,7 @@ function Invoke-UpdateIndex([string[]]$Rest) {
 
 # --- Dispatch ---
 if ($args.Count -lt 1) {
-    [Console]::Error.WriteLine('usage: sync-helper.ps1 <list-repos|list-changes|get-diff|update-index> [args]')
+    [Console]::Error.WriteLine('usage: sync-helper.ps1 <ensure-index|list-repos|list-changes|get-diff|update-index> [args]')
     exit 1
 }
 
@@ -254,6 +373,7 @@ if ($args.Count -gt 1) { $rest = $args[1..($args.Count - 1)] }
 foreach ($a in $rest) { Test-UnsafeArg $a }
 
 switch ($sub) {
+    'ensure-index'  { Invoke-EnsureIndex }
     'list-repos'    { Invoke-ListRepos }
     'list-changes'  { Invoke-ListChanges }
     'get-diff'      { Invoke-GetDiff $rest }

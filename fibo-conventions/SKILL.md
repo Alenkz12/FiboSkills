@@ -112,7 +112,7 @@ When creating a document under `.fibo/docs/`, **copy the matching template** to 
 | `ideas.template.md` | `.fibo/docs/ideas/{topic}.md` (filename without date) — the user's brainwaves (scenario + idea + feasibility assessment + clarification log; persisted only when the user explicitly asks, and persisting means a clarification loop + reading code to assess feasibility; renamed `--done` after the related feature lands) | `docs-system.md` §ideas section; related anchors reuse `tagRule.prompt.md` |
 | `tagRule.prompt.md` | The code / document / graph tag prompt for writing reports / codebase analysis reports | `docs-system.md` §reports section; reports have no fixed template, the body is organized freely per the user's needs, but reference and flow-diagram tags must follow this prompt |
 
-The `diff.md` template is not kept in this skill: the hunk-level diff record after implementation is done is maintained by `.claude/skills/fibo-recording-diff/references/diff.template.md`; once a feature enters the implementation-sync stage, `diff.md` participates in the sync equally with the sibling `spec.md` / `design.md` / `plan.md`.
+The `diff.md` template is not kept in this skill: the hunk-level diff record after implementation is done is maintained by the `fibo-recording-diff` resource `references/diff.template.md`; once a feature enters the implementation-sync stage, `diff.md` participates in the sync equally with the sibling `spec.md` / `design.md` / `plan.md`.
 
 ---
 
@@ -126,7 +126,7 @@ The `diff.md` template is not kept in this skill: the hunk-level diff record aft
 ---
 name: Fibo Collaboration Conventions Entry (L0 dispatcher)
 
-update-time: 2026-07-09 05:43
+update-time: 2026-09-08 04:31
 
 description: The L0 entry of the collaboration conventions, defining quartet sync, report date-prefix naming, multi-file report archiving, the backlog deferred-TODO template (filename without date), the ideas capture template (persisted only when the user explicitly asks + clarification loop + read code to assess feasibility), and the tagRule reference-prompt rules
 

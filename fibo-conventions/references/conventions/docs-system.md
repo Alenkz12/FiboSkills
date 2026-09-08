@@ -180,7 +180,7 @@ The template for each document type is maintained by the corresponding skill; wh
 - **Report** → no fixed template; organize the body freely per the user's needs, but you must read `references/tagRule.prompt.md` as the code / document / graph reference prompt
 - **Backlog TODO** → `references/backlog.template.md`; the related-anchors part reuses the code / document / graph tag rules of `references/tagRule.prompt.md`
 - **Ideas idea** → `references/ideas.template.md`; persisted only when the user explicitly asks, and persisting is a clarification activity (repeated questioning + reading code to assess feasibility), related anchors reuse `references/tagRule.prompt.md`
-- **Diff record** → `.claude/skills/fibo-recording-diff/references/diff.template.md` (maintained by the `fibo-recording-diff` skill)
+- **Diff record** → the `fibo-recording-diff` resource `references/diff.template.md`
 
 The templates already have built in:
 - Path conventions + examples of code / document jump tags (see `markdown.md`)
@@ -190,7 +190,7 @@ The templates already have built in:
 ---
 name: .fibo/docs/ document system conventions
 
-update-time: 2026-07-09 19:31
+update-time: 2026-09-08 04:31
 
 description: The .fibo/docs document system (specs / architecture / decisions / reports / backlog / ideas), the big-feature splitting mode, the report single-file fixed date-prefix naming, the multi-file report subdirectory (only README + topic reports), the backlog deferred TODO (dateless naming + four-state transition diagram + value/deferral-reason/prerequisites + --done backfill on completion), ideas idea capture (persisted only when the user explicitly asks + clarification loop + read code to assess feasibility + five-state transitions + --done backfill on completion), and the tagRule reference-prompt rules
 

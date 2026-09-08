@@ -85,7 +85,7 @@ flowchart TD
     service_dispatch_002 --> storage_update_003["Storage update"]
 ```
 
-<div id=".fibo/docs/reports/2026-07-09-repo-audit.md:1">
+<div id=".fibo/docs/reports/{YYYY-MM-DD}-{topic}.md:1">
 <!-- {
     "mermaid_info": {
         "name": "Codebase key flow",
@@ -122,8 +122,8 @@ flowchart TD
 } -->
 <div style="display: flex; align-items: flex-end; margin-top: 12px;">
     <span style="background: var(--tag-graph-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-graph-border); color: var(--tag-graph-fg); font-size: 14px; font-weight: 500;">
-        <a target="_self" href="#.fibo/docs/reports/2026-07-09-repo-audit.md:1?class=graph" style="color: inherit; text-decoration: none;">
-            Graph: .fibo/docs/reports/2026-07-09-repo-audit.md:1
+        <a target="_self" href="#.fibo/docs/reports/{YYYY-MM-DD}-{topic}.md:1?class=graph" style="color: inherit; text-decoration: none;">
+            Graph: .fibo/docs/reports/{YYYY-MM-DD}-{topic}.md:1
         </a>
     </span>
 </div>
@@ -150,7 +150,7 @@ flowchart TD
 ---
 name: Report reference-tag prompt (tagRule)
 
-update-time: 2026-07-09 00:14
+update-time: 2026-09-08 04:15
 
 description: The prompt rules for generating code / document / graph tags in reports and codebase analysis reports, the report single-file fixed {YYYY-MM-DD}-{topic} naming, and the rules for multi-file report directory archiving and README summarization
 

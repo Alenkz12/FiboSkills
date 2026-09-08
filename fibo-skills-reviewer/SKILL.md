@@ -1,11 +1,12 @@
 ---
 name: fibo-skills-reviewer
-description: Use when auditing or cleaning up the wording of any skill file under .claude/skills/ (SKILL.md, references/*.md, *.template.md, *.prompt.md) —— the goal is to reduce reading friction for large language models: find wording defects such as logical contradictions, logical gaps, insufficient consideration, meta-comment leaks (maintenance/history asides that surface in the document), obscure wording, unclear references, redundancy drift, and give revision suggestions that only change wording, not semantics. Example trigger words: review skill wording / optimize skill wording / clean up skill wording / skill self-check / "this skill reads ambiguously". This skill only optimizes "how it is said", not "what the rule is"; when a genuine rule contradiction is found it must stop and report, leaving the user to adjudicate rather than picking a side on its own.
+description: >-
+  Use when auditing or cleaning up the wording of any distributed skill package (SKILL.md, references/*.md, *.template.md, *.prompt.md) —— the goal is to reduce reading friction for large language models: find wording defects such as logical contradictions, logical gaps, insufficient consideration, meta-comment leaks (maintenance/history asides that surface in the document), obscure wording, unclear references, redundancy drift, and give revision suggestions that only change wording, not semantics. Example trigger words: review skill wording / optimize skill wording / clean up skill wording / skill self-check / "this skill reads ambiguously". This skill only optimizes "how it is said", not "what the rule is"; when a genuine rule contradiction is found it must stop and report, leaving the user to adjudicate rather than picking a side on its own.
 ---
 
 # Fibo Skills wording reviewer (fibo-skills-reviewer)
 
-> **Positioning**: the **wording-quality cleaner** for all skill documents under `.claude/skills/`. It only optimizes "how to say it so the model isn't confused", **it does not change rule semantics**.
+> **Positioning**: the **wording-quality cleaner** for distributed skill packages. It only optimizes "how to say it so the model isn't confused", **it does not change rule semantics**.
 > **Applicable targets**: `SKILL.md`, `references/**/*.md`, `*.template.md`, `*.prompt.md`.
 > **Self-checkable**: this skill itself is also within the review scope ("self-cleaning").
 
@@ -90,8 +91,8 @@ flowchart TD
 ---
 name: Fibo Skills wording reviewer
 
-update-time: 2026-07-09 02:54
+update-time: 2026-09-08 04:56
 
-description: A cleaner skill that reviews the wording quality of each skill document under .claude/skills, scanning per the eight defect classes C1-C8 (logical contradiction/gap/insufficient consideration/meta-comment leak/obscure wording/unclear reference/redundancy drift/placeholder pollution) and producing a report, only changing wording not semantics, stopping on the contradiction class for the user to adjudicate
+description: A cleaner skill that reviews wording quality across distributed skill packages, scanning per the eight defect classes C1-C8 (logical contradiction/gap/insufficient consideration/meta-comment leak/obscure wording/unclear reference/redundancy drift/placeholder pollution) and producing a report, only changing wording not semantics, stopping on the contradiction class for the user to adjudicate
 
 ---

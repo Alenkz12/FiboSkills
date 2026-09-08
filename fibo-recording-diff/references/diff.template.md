@@ -1,6 +1,6 @@
 # {Feature display name} Diff record
 
-> **Purpose**: record this implementation's real diff, explaining each hunk's design logic in the recommended reading order.
+> **Purpose**: record this implementation's real diff, summarizing each changed file before explaining its hunks in the recommended reading order.
 > **Location**: `.fibo/docs/specs/{feature-slug}/diff.md`
 > **Boundary**: this document only explains implementation changes that have already happened; it does not add AC, does not rewrite design decisions, and does not replace plan status.
 
@@ -39,11 +39,17 @@ flowchart TD
 </div>
 </div>
 
-## 3. Hunk design logic
+## 3. File summaries and hunk design logic
+
+> **Length rule**: file-level summaries, hunk explanations, design reasons, and context connections have no fixed word, sentence, paragraph, or bullet limit. Use as much detail as needed to make the meaning clear, while avoiding filler, repetition, and line-by-line restatement of the raw diff.
 
 ### 3.1 `path/to/entry.ts`
 
 **File role**: {state which role this file plays in this diff's main line among entry, dispatch, contract, core logic, adapter layer, presentation layer.}
+
+**File-level change summary**:
+
+- {Summarize a major behavioral, responsibility, contract, state-flow, or data-flow change across this file; repeat this bullet as many times as needed, with no fixed bullet or word count.}
 
 #### Hunk 1: {name it by design intent, not by writing "modified several lines"}
 
@@ -76,6 +82,10 @@ flowchart TD
 ### 3.2 `path/to/core.ts`
 
 **File role**: {state how this file takes over from the previous file and pushes the logic to the next layer.}
+
+**File-level change summary**:
+
+- {Summarize this file's overall responsibility, behavior, contract, state, or data-flow changes; repeat this bullet as many times as needed, with no fixed bullet or word count.}
 
 #### Hunk 1: {core logic intent}
 
@@ -122,6 +132,6 @@ name: {Feature display name} Diff record
 
 update-time: {YYYY-MM-DD HH:mm}
 
-description: {a one-sentence description of the file reading order, hunk design logic, and cross-file main line that this diff record covers}
+description: {a one-sentence description of the file reading order, file-level change summaries, hunk design logic, and cross-file main line that this diff record covers}
 
 ---

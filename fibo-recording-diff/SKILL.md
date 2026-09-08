@@ -1,12 +1,12 @@
 ---
 name: fibo-recording-diff
-description: Use AFTER fibo-executing-plan has completed implementation work, during code-change reverse sync, and BEFORE commit-sync when a feature `diff.md` under `.fibo/docs/specs/` needs to be generated or refreshed. Records a hunk-focused implementation explanation from a real diff or patch, orders changed files in a coherent reading sequence, attaches `class=code` anchors for each hunk and `class=graph` Mermaid logic views for related flows, and explains why each hunk exists and how it connects to surrounding logic. Does NOT change production code, spec AC, design decisions, plan task status, or commit anything.
+description: Use AFTER fibo-executing-plan has completed implementation work, during code-change reverse sync, and BEFORE commit-sync when a feature `diff.md` under `.fibo/docs/specs/` needs to be generated or refreshed. Records a file-first implementation explanation from a real diff or patch by ordering changed files coherently, summarizing each file's changes before explaining its hunks, attaching `class=code` anchors for every hunk and `class=graph` Mermaid views for related flows, and connecting the hunks to surrounding logic. Does NOT change production code, spec AC, design decisions, plan task status, or commit anything.
 ---
 
 # Fibo diff-recording skill
 
 > This skill, after implementation is complete, turns the real diff into `.fibo/docs/specs/<feature>/diff.md`.
-> The goal is not to make a code-review checklist, but to let the user read every hunk along one coherent main line: what logical problem this change solves, why it is designed this way, and how it connects to upstream and downstream.
+> The goal is not to make a code-review checklist, but to let the user understand each changed file at two levels: first the file-level change summary, then every hunk's design logic along one coherent upstream-to-downstream main line.
 
 ---
 
@@ -17,9 +17,10 @@ flowchart TD
   done_001["Implementation complete"] --> locate_002["Locate the feature directory"]
   locate_002 --> collect_003["Collect the real diff / patch"]
   collect_003 --> order_004["Organize files in reading order"]
-  order_004 --> explain_005["Explain design logic hunk by hunk"]
-  explain_005 --> graph_006["Add a related-logic Mermaid diagram"]
-  graph_006 --> write_007["Write diff.md and refresh the meta-info"]
+  order_004 --> summarize_005["Summarize changes file by file"]
+  summarize_005 --> explain_006["Explain design logic hunk by hunk"]
+  explain_006 --> graph_007["Add a related-logic Mermaid diagram"]
+  graph_007 --> write_008["Write diff.md and refresh the meta-info"]
 ```
 
 ---
@@ -44,9 +45,9 @@ Handling when not satisfied:
 
 Before writing, you must read:
 
-- `.claude/skills/fibo-conventions/references/conventions/markdown.md`
-- `.claude/skills/fibo-conventions/references/conventions/docs-system.md`
-- `.claude/skills/fibo-recording-diff/references/diff.template.md`
+- The `fibo-conventions` resource `references/conventions/markdown.md`
+- The `fibo-conventions` resource `references/conventions/docs-system.md`
+- This skill's resource `references/diff.template.md`
 
 When you need to write `update-time`, actually run the command to get the current system time per `fibo-conventions`' cross-OS rule.
 
@@ -88,11 +89,27 @@ If the real call chain differs from the order above, follow the call chain, and 
 
 ---
 
-## Step 4: Explain hunk by hunk
+## Step 4: Summarize each file, then explain hunk by hunk
+
+For every changed file, write the file section in this fixed order:
+
+1. **File role**: state where the file sits in the implementation main line, such as entry, contract, core logic, adapter, presentation, test, or supporting config
+2. **File-level change summary**: aggregate the file's main behavioral, responsibility, contract, state-flow, or data-flow changes, using as many bullets or paragraphs as needed to make the meaning clear
+3. **Hunk explanations**: explain the real hunks under that file with code anchors
+
+The file-level summary is mandatory even when the file contains only one hunk. Keep the three levels distinct:
+
+- File role explains **where the file participates** in the overall change
+- File-level change summary explains **what changed across the file as a whole**
+- Hunk explanations provide **the anchored design reasoning and context for each concrete change segment**
+
+Do not impose a fixed word, sentence, paragraph, or bullet count on the file-level summary or on any hunk field. Write as much as needed to make the behavior, design reason, and context relationship unambiguous; stop when additional text would add no meaning. Avoid filler, repetition, and line-by-line restatement of the raw diff.
+
+Do not turn the file-level summary into a list of line numbers, filenames, or hunk titles, and do not copy the hunk explanations verbatim. It must be a clear synthesis that lets the reader understand the file before drilling into individual hunks.
 
 Each hunk subsection answers only what the user truly cares about:
 
-- **What this change does**: use 1–3 sentences to describe the behavioral change of the code, without restating the literal additions/deletions of the diff
+- **What this change does**: describe the behavioral change of the code with enough detail to make its meaning clear, without restating the literal additions/deletions of the diff
 - **Why it is designed this way**: explain why this hunk chose the current approach, and point out the avoided alternative when necessary
 - **Context connection**: explain whose input it receives, whose subsequent logic it affects, and how it works with other hunks in the same file / across files
 
@@ -129,8 +146,9 @@ Tag rules for the diagram:
 When writing `.fibo/docs/specs/<feature>/diff.md`:
 
 - Use the section skeleton of `references/diff.template.md`
+- Inside every file section, keep the fixed order `File role → File-level change summary → Hunk explanations`
 - Keep the `name/update-time/description` meta-info block at the end
-- Write `description` as "records the reading order, hunk design logic, and cross-file relationships of this implementation diff"
+- Write `description` as "records the reading order, file-level change summaries, hunk design logic, and cross-file relationships of this implementation diff"
 - Do not modify `spec.md`'s AC, do not modify `design.md`'s design decisions, do not modify `plan.md`'s task status
 
 After completion, report only:
@@ -145,8 +163,8 @@ diff record complete:
 ---
 name: Fibo diff-recording skill
 
-update-time: 2026-07-05 21:25
+update-time: 2026-09-08 04:31
 
-description: Conventions for generating or refreshing a hunk-level diff.md participating in sync at the same level, based on a real diff
+description: Conventions for generating or refreshing a real-diff-based diff.md with a file-level change summary before each file's hunk explanations
 
 ---
