@@ -1,6 +1,6 @@
 ---
 name: fibo-recording-diff
-description: Use AFTER fibo-executing-plan has completed implementation work, during code-change reverse sync, and BEFORE commit-sync when a feature `diff.md` under `.fibo/docs/specs/` needs to be generated or refreshed. Records a file-first implementation explanation from a real diff or patch by ordering changed files coherently, summarizing each file's changes before explaining its hunks, attaching `class=code` anchors for every hunk and `class=graph` Mermaid views for related flows, and connecting the hunks to surrounding logic. Does NOT change production code, spec AC, design decisions, plan task status, or commit anything.
+description: Use AFTER fibo-executing-plan has completed tasks and fibo-testing has recorded final PASS or explicit WAIVED evidence, during code-change reverse sync, and BEFORE commit-sync when a feature diff.md needs to be generated or refreshed. Records a file-first implementation explanation from a real diff/patch, including test hunks and related TC where useful. Does NOT change production/test code, spec AC, test oracle/results, design decisions, plan status, or commit anything.
 ---
 
 # Fibo diff-recording skill
@@ -14,7 +14,7 @@ description: Use AFTER fibo-executing-plan has completed implementation work, du
 
 ```mermaid
 flowchart TD
-  done_001["Implementation complete"] --> locate_002["Locate the feature directory"]
+  done_001["Tasks resolved + final verification PASS/WAIVED"] --> locate_002["Locate the feature directory"]
   locate_002 --> collect_003["Collect the real diff / patch"]
   collect_003 --> order_004["Organize files in reading order"]
   order_004 --> summarize_005["Summarize changes file by file"]
@@ -29,8 +29,9 @@ flowchart TD
 
 Before entering this skill, the following must be satisfied:
 
-- `.fibo/docs/specs/<feature>/spec.md` already exists, and typically `design.md` / `plan.md` already exist in the same directory
-- Implementation is already complete, code changes are wrapping up into reverse sync, or the user explicitly requests "record the current diff"
+- `.fibo/docs/specs/<feature>/spec.md`, `design.md`, `test.md`, and `plan.md` already exist
+- test.md records final `PASS`, or an explicit `WAIVED` entry with scope/reason/impact; plain `FAIL` blocks normal diff recording
+- Implementation tasks are resolved, code changes are wrapping up into reverse sync, or the user explicitly requests "record the current diff"
 - A real diff source is obtainable: a patch provided by the user, a working-tree / staged diff, a commit diff, or the comparable changes listed by the previous step's executor
 
 Handling when not satisfied:
@@ -38,6 +39,7 @@ Handling when not satisfied:
 - Cannot find the feature directory and cannot uniquely infer it from context → just ask the user which `.fibo/docs/specs/<feature>/` to record
 - No real diff / patch → stop and explain that a hunk-level record cannot be generated; making up hunks from memory is forbidden
 - The diff clearly conflicts with the spec's business intent → stop and report the conflict; do not generate a diff.md that papers over the problem
+- test.md is FAIL or lacks final evidence → return to `fibo-testing` Verify; do not imply completion through diff recording
 
 ---
 
@@ -47,6 +49,7 @@ Before writing, you must read:
 
 - The `fibo-conventions` resource `references/conventions/markdown.md`
 - The `fibo-conventions` resource `references/conventions/docs-system.md`
+- The sibling `test.md` final status and TC mapping (read-only; do not duplicate its strategy/evidence)
 - This skill's resource `references/diff.template.md`
 
 When you need to write `update-time`, actually run the command to get the current system time per `fibo-conventions`' cross-OS rule.
@@ -83,7 +86,7 @@ Recommended ordering:
 3. Core logic: state, algorithms, business rules, data transforms
 4. Adapter layer: backend services, storage, network, bridge layers
 5. Presentation layer: UI components, interaction feedback, styles
-6. Tests / docs / supporting config
+6. Tests / docs / supporting config; when test hunks prove a TC, name the related `TC-NN`
 
 If the real call chain differs from the order above, follow the call chain, and explain in the "reading order" table why it is read first.
 
@@ -120,7 +123,7 @@ Do not write these fields by default:
 - `Verification method`
 - Vague "note the tests" / "confirm no regression"
 
-Unless the user explicitly requests a review checklist, `diff.md` is an explanation document, not a test plan.
+Unless the user explicitly requests a review checklist, `diff.md` is an explanation document, not a test plan or test report. It may cite `TC-NN` and explain test hunks, but test strategy, commands, results, flaky state, and waiver evidence remain in test.md.
 
 ---
 
@@ -149,7 +152,7 @@ When writing `.fibo/docs/specs/<feature>/diff.md`:
 - Inside every file section, keep the fixed order `File role → File-level change summary → Hunk explanations`
 - Keep the `name/update-time/description` meta-info block at the end
 - Write `description` as "records the reading order, file-level change summaries, hunk design logic, and cross-file relationships of this implementation diff"
-- Do not modify `spec.md`'s AC, do not modify `design.md`'s design decisions, do not modify `plan.md`'s task status
+- Do not modify `spec.md`'s AC, `design.md`'s decisions, `test.md`'s oracle/results, or `plan.md`'s task status
 
 After completion, report only:
 
@@ -163,8 +166,8 @@ diff record complete:
 ---
 name: Fibo diff-recording skill
 
-update-time: 2026-09-08 04:31
+update-time: 2026-10-10 12:38
 
-description: Conventions for generating or refreshing a real-diff-based diff.md with a file-level change summary before each file's hunk explanations
+description: Generate real-diff-based diff.md only after final test evidence, while keeping test strategy and results in test.md
 
 ---

@@ -169,28 +169,75 @@ function Test-HasUncommitted([string]$RepoRel) {
     if ($out -and $out.Trim().Length -gt 0) { return $true } else { return $false }
 }
 
+<#
+.SYNOPSIS
+Quote one native argument for Windows PowerShell 5.1's Arguments fallback.
+#>
+function ConvertTo-GitProcessArgument([string]$Value) {
+    if ($Value.Length -gt 0 -and $Value -notmatch '[\s"]') { return $Value }
+    $escaped = [regex]::Replace($Value, '(\\*)"', '$1$1\"')
+    $escaped = [regex]::Replace($escaped, '(\\+)$', '$1$1')
+    return '"' + $escaped + '"'
+}
+
+<#
+.SYNOPSIS
+Read raw UTF-8 NUL-delimited Git paths without native pipeline line splitting.
+#>
+function Invoke-GitPathOutput {
+    param([string]$RepoRel, [string[]]$GitArguments)
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = 'git'
+    $startInfo.WorkingDirectory = Join-Path $script:RepoRoot $RepoRel
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.StandardOutputEncoding = New-Object System.Text.UTF8Encoding($false)
+    if ($startInfo.PSObject.Properties['ArgumentList']) {
+        foreach ($argument in $GitArguments) { [void]$startInfo.ArgumentList.Add($argument) }
+    } else {
+        $startInfo.Arguments = (($GitArguments | ForEach-Object {
+            ConvertTo-GitProcessArgument $_
+        }) -join ' ')
+    }
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $startInfo
+    try {
+        [void]$process.Start()
+        # Drain stderr concurrently so an error cannot block the stdout reader.
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $output = $process.StandardOutput.ReadToEnd()
+        $process.WaitForExit()
+        [void]$stderrTask.GetAwaiter().GetResult()
+        return $output
+    } finally {
+        $process.Dispose()
+    }
+}
+
 # Emit changed-files list for a single repo as array of [pscustomobject].
 # Base = lastSyncHash (if set) else HEAD-only (single commit).
 function Get-RepoChanges {
     param([string]$RepoRel, [string]$Base)
     if ([string]::IsNullOrEmpty($Base)) {
-        $raw = Invoke-GitIn -RepoRel $RepoRel -Args @('show','--name-status','--format=','HEAD')
+        $raw = Invoke-GitPathOutput -RepoRel $RepoRel -GitArguments @('show','--name-status','-z','--format=','HEAD')
     } else {
-        $raw = Invoke-GitIn -RepoRel $RepoRel -Args @('diff','--name-status',"$Base..HEAD")
+        $raw = Invoke-GitPathOutput -RepoRel $RepoRel -GitArguments @('diff','--name-status','-z',"$Base..HEAD")
     }
     if (-not $raw) { return @() }
 
     $result = @()
-    foreach ($line in $raw -split "`n") {
-        $line = $line.Trim()
-        if (-not $line) { continue }
-        $parts = $line -split "`t"
-        if ($parts.Count -lt 2) { continue }
-        $status = $parts[0]
+    $fields = $raw.Split([char]0)
+    $index = 0
+    while ($index -lt $fields.Length - 1) {
+        $status = $fields[$index++]
+        $file = $fields[$index++]
+        if (-not $status) { continue }
         $code = $status.Substring(0,1)
+        # Rename/copy carries a source and a destination, even with -z.
+        if ($code -eq 'R' -or $code -eq 'C') { $file = $fields[$index++] }
         if ($code -notmatch '^[MADRC]$') { continue }
-        # Rename/copy: prefer destination (last field)
-        $file = $parts[-1]
         if (Test-BinaryExt $file) { continue }
         $result += [pscustomobject]@{
             repo   = $RepoRel

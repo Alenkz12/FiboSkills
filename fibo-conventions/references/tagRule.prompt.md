@@ -17,10 +17,22 @@
 
 ## Unified path rules
 
-- All paths must be relative to the project root, not starting with `/`.
+- Code and ordinary document targets must be relative to the project root, not starting with `/`. For generated analysis articles, use the logical document targets from `fibo-code-analysis/references/prompts/analysisNavigation.prompt.md`, omitting their physical `.fibo/analysis/` storage prefix.
 - Absolute paths are forbidden, e.g. `C:/...`, `D:/...`.
-- Tag display text must show the full relative path, not just the filename.
+- Standalone code/document cards display the full target with `Code: ` / `Document: `. Compact tags display only the filename and any code line locator, without a prefix. Graph tags display the diagram title as specified below. Keep complete navigation paths and locators in `href` and graph container IDs.
 - All `href` must start with `#`, and carry `?class=code`, `?class=text`, or `?class=graph`.
+
+## Standalone and compact presentation
+
+Read `conventions/markdown.md` §2.1 for the shared presentation, styling, and paragraph-embedding rules for all three tag types. Use standalone `div + span + a` cards for separate navigation rows or dedicated template slots, and compact `div + a` tags for references in sentences, list items, table cells, or several references shown together. Keep full targets unchanged when switching presentation.
+
+Compact code labels contain the filename plus any existing line locator; compact document labels contain the target filename with its actual extension; compact graph labels contain only `mermaid_info.name`. None has a type prefix. For example:
+
+<div style="display: inline; padding: 0 6px; border-radius: 4px; background-color: var(--tag-code-bg); color: var(--tag-code-fg); font-size: inherit; font-weight: 500;"><a target="_self" href="#src/example.ts:10-24?class=code" style="color: inherit; text-decoration: none;">example.ts:10-24</a></div>
+
+<div style="display: inline; padding: 0 6px; border-radius: 4px; background-color: var(--tag-text-bg); color: var(--tag-text-fg); font-size: inherit; font-weight: 500;"><a target="_self" href="#.fibo/docs/specs/example/spec.md?class=text" style="color: inherit; text-decoration: none;">spec.md</a></div>
+
+The code/document templates below illustrate standalone cards. Emit finished navigation HTML outside code fences, using verified paths and source positions instead of example values. Preserve the chosen presentation when copying existing tags.
 
 ## code tag
 
@@ -65,9 +77,19 @@ A single-line reference uses `:{line}`, do not write it as `:{line}-{line}`.
 Constraints:
 
 - `relative-md-path` must end with `.md`; `.info.md` and `.document.md` are allowed.
-- The tag text is fixed as `Document: {relative-md-path}`, a Chinese prefix is forbidden.
+- A standalone card displays `Document: {relative-md-path}`; keep this standard English prefix. A compact tag displays only the target filename without a prefix.
 
 ## graph tag
+
+### Display name and styling
+
+- Use the corresponding `mermaid_info.name` as the diagram title. It must be meaningful, non-empty, and in the requested output language.
+- A standalone card displays `Graph: {diagram-title}`. A compact tag displays only `{diagram-title}`, without the `Graph: ` prefix. Do not display the reference path, diagram sequence, or container ID in place of the title.
+- Keep the full scene-specific reference in `href` and the matching outer `div.id`. Changing the visible title or presentation must not change either locator.
+- Use `background-color: var(--tag-graph-bg)` and `color: var(--tag-graph-fg)` on the styled container. Standalone cards also use `--tag-graph-border`. Keep the anchor's `color: inherit; text-decoration: none;`. Do not use the `background` shorthand, which the renderer filters out.
+- Emit finished navigation HTML directly in the report, outside code fences; the HTML fences in the code/document templates only illustrate their markup.
+
+### Report reference path
 
 When adding a Mermaid diagram in a report, the graph's real path must bind to **the current report file that carries this diagram**:
 
@@ -121,13 +143,23 @@ flowchart TD
     }
 } -->
 <div style="display: flex; align-items: flex-end; margin-top: 12px;">
-    <span style="background: var(--tag-graph-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-graph-border); color: var(--tag-graph-fg); font-size: 14px; font-weight: 500;">
+    <span style="background-color: var(--tag-graph-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-graph-border); color: var(--tag-graph-fg); font-size: 14px; font-weight: 500;">
         <a target="_self" href="#.fibo/docs/reports/{YYYY-MM-DD}-{topic}.md:1?class=graph" style="color: inherit; text-decoration: none;">
-            Graph: .fibo/docs/reports/{YYYY-MM-DD}-{topic}.md:1
+            Graph: Codebase key flow
         </a>
     </span>
 </div>
 </div>
+
+### Compact graph presentation
+
+Use the shared compact presentation from `conventions/markdown.md` §2.1 for graph references in a sentence, list item, table cell, or several references shown together. The compact graph label is only the diagram title.
+
+For the diagram above, the compact link is:
+
+<div style="display: inline; padding: 0 6px; border-radius: 4px; background-color: var(--tag-graph-bg); color: var(--tag-graph-fg); font-size: inherit; font-weight: 500;"><a target="_self" href="#.fibo/docs/reports/{YYYY-MM-DD}-{topic}.md:1?class=graph" style="color: inherit; text-decoration: none;">Codebase key flow</a></div>
+
+When creating a diagram, replace only its inner standalone link wrapper with the compact form; retain the Mermaid block, outer `div.id`, metadata JSON comment, and exactly one graph link. A reference to an existing diagram needs only the link, without duplicating the diagram or metadata. To keep a sentence or list-item paragraph continuous with a compact tag, wrap the whole paragraph in an outer `div`, write the complete HTML paragraph on one source line, use HTML for other formatting inside it, and separate it from surrounding Markdown with blank lines. A tag occupying a table cell can use the compact form directly.
 
 ## Mermaid and node-JSON rules
 
@@ -143,15 +175,17 @@ flowchart TD
 
 - `href="#TemporaryGraph/repo-flow:1?class=graph"`
 - `Graph: repo-flow:1`
-- `Code: memory.service.ts`
+- Standalone text `Code: memory.service.ts` when the target is `backend/src/agents/memory/memory.service.ts` (missing the full path)
+- Compact text `Code: memory.service.ts` (compact labels omit prefixes)
+- Shortening `href` to `#memory.service.ts?class=code` merely because the compact label is `memory.service.ts`
 - `href="#backend/src/agents/memory/memory.service.ts"`
 - `href="#C:/Users/13909/Desktop/Fibo/backend/src/agents/memory/memory.service.ts?class=code"`
 
 ---
 name: Report reference-tag prompt (tagRule)
 
-update-time: 2026-09-08 04:15
+update-time: 2026-11-01 11:27
 
-description: The prompt rules for generating code / document / graph tags in reports and codebase analysis reports, the report single-file fixed {YYYY-MM-DD}-{topic} naming, and the rules for multi-file report directory archiving and README summarization
+description: Report reference tags with shared standalone and compact code/document/graph presentation, report-file locators, and single-file or multi-file report archiving rules
 
 ---

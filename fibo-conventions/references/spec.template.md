@@ -1,13 +1,13 @@
 # {feature name} feature spec
 
-> **Purpose**: a single feature's "what to do + why + acceptance criteria + implementation anchors", the source of the spec ↔ code bidirectional tracking.
+> **Purpose**: a single feature's "what to do + why + acceptance criteria + implementation anchors", the authority for intended behavior and the upstream source of AC ↔ TC ↔ code tracking.
 > **Location**: `.fibo/docs/specs/<feature-name>/spec.md`
 
 ## 1. Background and purpose (WHY)
 
 {why this feature is needed; what problem it solves; what the cost of not doing it is}
 
-## 2. Scope
+## 2. Scope and Non-goals
 
 - **In Scope (do)**:
   - ...
@@ -27,10 +27,10 @@
 
 WHEN {trigger}, THE SYSTEM SHALL {expected behavior}.
 
-**Implementation location** (for reference only, on finding an inconsistency, code wins and this anchor is reverse-updated):
+**Implementation location** (the anchor is factual and may be reverse-updated; the signed AC remains authoritative when implementation behavior differs):
 
 <div style="display: flex; align-items: flex-end;">
-    <span style="background: var(--tag-code-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-code-border); color: var(--tag-code-fg); font-size: 14px; font-weight: 500;">
+    <span style="background-color: var(--tag-code-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-code-border); color: var(--tag-code-fg); font-size: 14px; font-weight: 500;">
         <a target="_self" href="#src/services/Foo.ts:120-155?class=code" style="color: inherit; text-decoration: none;">
             Code: src/services/Foo.ts:120-155
         </a>
@@ -44,22 +44,30 @@ WHEN {trigger}, THE SYSTEM SHALL {expected behavior}.
 ## 4. Related documents
 
 <div style="display: flex; align-items: flex-end;">
-    <span style="background: var(--tag-text-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-text-border); color: var(--tag-text-fg); font-size: 14px; font-weight: 500;">
+    <span style="background-color: var(--tag-text-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-text-border); color: var(--tag-text-fg); font-size: 14px; font-weight: 500;">
+        <a target="_self" href="#.fibo/docs/specs/<feature-name>/test.md?class=text" style="color: inherit; text-decoration: none;">
+            Document: .fibo/docs/specs/<feature-name>/test.md
+        </a>
+    </span>
+</div>
+
+<div style="display: flex; align-items: flex-end;">
+    <span style="background-color: var(--tag-text-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-text-border); color: var(--tag-text-fg); font-size: 14px; font-weight: 500;">
         <a target="_self" href="#.fibo/docs/architecture/{architecture-doc}.md?class=text" style="color: inherit; text-decoration: none;">
             Document: .fibo/docs/architecture/{architecture-doc}.md
         </a>
     </span>
 </div>
 
-## 5. Design details (optional)
+## 5. Supplementary design context (optional)
 
-Simple features write this section directly; complex features split into the `design/` subdirectory and list only the file entry links here.
+Canonical HOW belongs in sibling design.md and HOW TO PROVE belongs in sibling test.md. Use this section only for brief requirement-side context that helps interpret the AC; complex designs split into the `design/` subdirectory.
 
 ---
 name: {feature name} feature spec
 
 update-time: {YYYY-MM-DD HH:mm}
 
-description: {a one-sentence description of this feature's goal and scope, for retrieval}
+description: {a one-sentence description of this feature's intended behavior, scope, and AC boundary, for retrieval}
 
 ---

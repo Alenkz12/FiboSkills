@@ -5,7 +5,7 @@
 
 ## 0. Unified structure of MD artifacts
 
-Whenever you generate or update a `.md` file — whether spec / design / plan / report / ADR, or Markdown generated from `.info.md` / `.document.md` / `*.template.md` — the end must carry the unified meta-info block:
+Whenever you generate or update a `.md` file — whether spec / design / test / plan / diff / report / ADR, or Markdown generated from `.info.md` / `.document.md` / `*.template.md` — the end must carry the unified meta-info block:
 
 ```
 ---
@@ -42,27 +42,27 @@ Type selection:
 
 ```mermaid
 flowchart LR
-  A[Flow type] --> M[flowchart]
-  B[State type] --> N[stateDiagram-v2]
-  C[Sequence/interaction] --> O[sequenceDiagram]
-  D[Data structure/relation] --> P[classDiagram / erDiagram]
+  flow_purpose_001["Flow type"] --> flowchart_type_002["flowchart"]
+  state_purpose_003["State type"] --> state_diagram_type_004["stateDiagram-v2"]
+  sequence_purpose_005["Sequence / interaction"] --> sequence_diagram_type_006["sequenceDiagram"]
+  relation_purpose_007["Data structure / relation"] --> relation_diagram_type_008["classDiagram / erDiagram"]
 ```
 
 Writing requirements:
-- Node naming must be semantic, avoid meaningless symbols like `A/B/C` (unless a pure schematic diagram)
-- Write branch conditions on the edge: `A -->|condition| B`
+- Node naming must be semantic; meaningless symbols like `A/B/C` are forbidden
+- Write branch conditions on the edge, for example `decision_001 -->|condition| outcome_002`
 - Split complex diagrams into multiple, keep node count per diagram ≤ 15 where possible
 
 ---
 
 ## 2. General path convention (common to code / MD references, a rule)
 
-Whether a code jump tag or an MD document cross-reference tag, all `href` and visible tag text **must obey** the following rules:
+Code, document, and graph navigation tags **must obey** the following target and presentation rules:
 
-- **Must use a relative path**: every path in `href` is relative to the **project root**
+- **Must use a complete relative target**: code paths and ordinary Markdown document paths in `href` are relative to the **project root**. Generated analysis articles use the logical document targets and graph-owner rules defined in `fibo-code-analysis/references/prompts/analysisNavigation.prompt.md`; do not add the physical `.fibo/analysis/` prefix to those targets
 - **Does not start with `/`**: write `src/services/UserService.ts` directly, `/src/services/UserService.ts` is forbidden
 - **No absolute paths**: `C:/...`, `D:/...`, `/Users/...` or any absolute path is forbidden
-- **Tag text must use the full relative path**: cannot write only the filename or directory name
+- **Visible text follows the presentation**: standalone code/document cards show the full target with `Code: ` / `Document: `; compact tags show only the filename and any code line locator, without a prefix. Graph labels use the diagram title per §5.3. Complete targets and locators remain in `href` and graph container IDs
 - **Fixed anchor format**: `href` starts with `#`, followed by the relative path, then optionally appends `:line`, `:startLine-endLine`, or `:seq`, and finally `?class=xxx`
 
 Correct examples:
@@ -73,8 +73,39 @@ Correct examples:
 Anti-examples (all forbidden):
 - ❌ `href="/src/services/UserService.ts?class=code"` (starts with `/`)
 - ❌ `href="#C:/project/src/services/UserService.ts?class=code"` (absolute path)
-- ❌ Tag text: `Code: UserService.ts` (filename only)
-- ❌ Tag text: `Document: services` (directory name only)
+- ❌ Standalone card text: `Code: UserService.ts` when the target is `src/services/UserService.ts` (missing the full path)
+- ❌ Shortening `href` to `#UserService.ts?class=code` merely because the compact label is `UserService.ts`
+
+### 2.1 Standalone and compact presentation
+
+Both forms use the same navigation protocol. Changing presentation must not change the target, class, code line locator, diagram sequence, or graph container ID.
+
+- **Standalone card**: use the `div + span + a` templates below for a separate navigation row, a dedicated template slot, or a diagram's own navigation row. This is the default when a layout provides a separate navigation slot.
+- **Compact tag**: use `div + a` for references in a sentence, list item, table cell, or several references shown together. Put styles on the `div`: `display: inline`, `padding: 0 6px`, `border-radius: 4px`, the matching `background-color: var(--tag-{code|text|graph}-bg)` and `color: var(--tag-{code|text|graph}-fg)`, `font-size: inherit`, and `font-weight: 500`. Omit the `span`, border, and outer margin.
+- Retain `target="_self"` and `style="color: inherit; text-decoration: none;"` on the anchor. Use `background-color`, not the `background` shorthand, which the renderer filters out.
+- Write each compact tag on one source line. Allow long labels to wrap naturally; do not truncate them or force no-wrap styling.
+
+| Reference | Standalone visible text | Compact visible text |
+| --- | --- | --- |
+| Whole code file | `Code: {full-path}` | Filename |
+| Single code line | `Code: {full-path}:{line}` | Filename:line |
+| Code range | `Code: {full-path}:{startLine}-{endLine}` | Filename:startLine-endLine |
+| Document | `Document: {full-document-target}` | Target filename, preserving its actual extension |
+| Graph | `Graph: {mermaid_info.name}` | `mermaid_info.name` |
+
+Use the last `/`-separated target component as the filename. For an analysis directory-document shortcut, use the directory basename. Compact labels have no `Code: `, `Document: `, or `Graph: ` prefix. Shortening a label must never shorten its navigation target or invent line numbers. Replace example targets and source positions with verified values when generating a document.
+
+Compact code example:
+
+<div style="display: inline; padding: 0 6px; border-radius: 4px; background-color: var(--tag-code-bg); color: var(--tag-code-fg); font-size: inherit; font-weight: 500;"><a target="_self" href="#src/services/UserService.ts:45-67?class=code" style="color: inherit; text-decoration: none;">UserService.ts:45-67</a></div>
+
+Compact document example:
+
+<div style="display: inline; padding: 0 6px; border-radius: 4px; background-color: var(--tag-text-bg); color: var(--tag-text-fg); font-size: inherit; font-weight: 500;"><a target="_self" href="#.fibo/docs/specs/example/spec.md?class=text" style="color: inherit; text-decoration: none;">spec.md</a></div>
+
+A `div` inserted directly into a Markdown paragraph can split it even with `display: inline`. To keep a sentence or list-item paragraph continuous with compact tags, wrap the whole paragraph in an outer `div`, write the complete HTML paragraph on one source line, use HTML for other formatting inside it, and separate it from surrounding Markdown blocks with blank lines. A tag occupying a table cell can use the compact form directly.
+
+Emit finished navigation HTML outside code fences; the fenced HTML templates below illustrate markup. When copying existing content, preserve its standalone or compact presentation, rounded corners, and padding. A styled `div` containing plain text is not a navigation tag; retain a clickable `a` with the correct `href`.
 
 ---
 
@@ -82,7 +113,7 @@ Anti-examples (all forbidden):
 
 When a document references a code file / class / function / line range, you **must use the unified code jump tag**; bare paths are not allowed.
 
-Standard template:
+Standalone template (for compact presentation, use §2.1):
 
 ```html
 <div style="display: flex; align-items: flex-end;">
@@ -132,7 +163,7 @@ Anchors (line numbers) are a **reference index**, they are not guaranteed to mat
 
 **Rule — index uncertainty**:
 - Anchors are **for reference only**; if while reading you find the anchor points to a location inconsistent with the context description, you **should reverse-update the anchor** (fix the doc) rather than trust the old anchor
-- **When code vs docs disagree, code wins**: if you find the implementation detail described in the doc inconsistent with the current code, change the doc per the current code, not the other way around
+- **Implementation anchors follow code facts**: if an anchor or implementation-detail description is inconsistent with current code, update that factual detail. This does not authorize rewriting signed AC, test oracle, expected values, or approved design direction; those follow the typed truth-source rules in `sync.md`.
 - Do not update anchors frequently for the sake of precision — only fix them along the way while reading / changing / committing (see `commit-sync.md`)
 - **The `#symbolName` form is forbidden** (e.g. `src/foo.ts#parseConfig`): this project anchors uniformly by line number
 
@@ -140,9 +171,9 @@ Anchors (line numbers) are a **reference index**, they are not guaranteed to mat
 
 ## 4. MD document cross-reference tag style
 
-When a generated MD needs to reference **another MD document**, use the document jump style (strictly distinguished from the code jump tag via `class`), and **the file suffix in `href` must be `.md`**.
+When a generated MD needs to reference **another MD document**, use the document jump style (strictly distinguished from the code jump tag via `class`). Ordinary document targets must end with `.md`; generated analysis article targets follow the analysis-specific rules described below.
 
-Standard template:
+Standalone template (for compact presentation, use §2.1):
 
 ```html
 <div style="display: flex; align-items: flex-end;">
@@ -157,10 +188,10 @@ Standard template:
 Mandatory constraints (`class` is the immutable trait of this tag):
 - **The `class` value is fixed as `text`**: it must not be written as `md`, `doc`, `markdown`, or any other value
 - **`class=text` must be carried**: omitting `?class=text` in `href` is **forbidden**; an `href` with no query parameter is deemed illegal
-- **`href` must end with `.md`**: even when referencing a directory summary or a section anchor, it must land on a concrete `.md` file
+- **Ordinary document targets must end with `.md`**: even when referencing a directory summary or a section anchor, the path before `?class=text` must land on a concrete `.md` file
 - **The path still obeys §2 of this file**
 
-The tag text uniformly uses `Document: ` as the prefix, followed by the full relative path (ending in `.md`).
+Standalone document cards use `Document: ` followed by the full target (ending in `.md`). Compact document tags show only the filename without a prefix, per §2.1. For generated analysis articles, use the analysis navigation prompt's logical `.info.md` paths; its supported source-file/directory shortcuts are analysis-specific exceptions to the `.md` target rule. Ordinary document references use their actual project-relative `.md` paths.
 
 Correct examples:
 - ✅ `Document: docs/api/UserService.md`
@@ -172,8 +203,8 @@ Anti-examples:
 - ❌ `href="#docs/api/UserService.md?class=md"` (illegal class value)
 - ❌ `href="#docs/api/UserService"` (missing `.md` suffix)
 - ❌ `href="#docs/api/UserService.html?class=text"` (suffix is not `.md`)
-- ❌ Tag text: `Document: UserService.md` (missing the full relative path)
-- ❌ Tag text uses a localized or non-standard prefix (e.g. `File details: xxx`, `Design doc: xxx`); only the standard English prefixes are allowed
+- ❌ Standalone card text: `Document: UserService.md` when the target is `docs/api/UserService.md` (missing the full relative path)
+- ❌ A standalone card uses a localized or non-standard prefix (e.g. `File details: xxx`, `Design doc: xxx`); standalone cards use the standard English prefixes, while compact tags omit prefixes
 
 ---
 
@@ -220,9 +251,9 @@ graph TD
     }
 } -->
 <div style="display: flex; align-items: flex-end; margin-top: 12px;">
-    <span style="background: var(--tag-graph-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-graph-border); color: var(--tag-graph-fg); font-size: 14px; font-weight: 500;">
+    <span style="background-color: var(--tag-graph-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-graph-border); color: var(--tag-graph-fg); font-size: 14px; font-weight: 500;">
         <a target="_self" href="#src/services:1?class=graph" style="color: inherit; text-decoration: none;">
-            Graph: src/services:1
+            Graph: User service architecture
         </a>
     </span>
 </div>
@@ -231,6 +262,9 @@ graph TD
 
 ### 5.3 Mandatory constraints
 
+- **Display name**: use the meaningful, non-empty `mermaid_info.name` in the requested output language. Standalone cards display `Graph: {diagram-title}`; compact tags display only `{diagram-title}`. Do not substitute a path, sequence, or container ID for the title, or replace `href` / `div.id` with the title.
+- **Styling**: use `background-color: var(--tag-graph-bg)` and `color: var(--tag-graph-fg)` on the styled container; the anchor retains `color: inherit; text-decoration: none;`. Standalone cards retain the `--tag-graph-border` border. The `background` shorthand is filtered out by the renderer.
+- **Compact form**: graph references in sentences, lists, tables, or parallel references use the compact `div + a` presentation from §2.1; see `../tagRule.prompt.md` §Compact graph presentation for an example. Preserve the scene-specific reference, and retain the Mermaid block, outer container, JSON metadata, and exactly one graph link when creating a diagram. Referencing an existing diagram needs only its link, without copying the diagram or metadata or creating another container ID.
 - **The `class` value is fixed as `graph`**: it must not be written as `flowchart` / `diagram` / `mermaid` or any other value
 - **`class=graph` must be carried**: omitting `?class=graph` in `href` is forbidden; an `href` with no query parameter is illegal
 - **The three segments are in a fixed order and cannot be missing**: Mermaid block → outer div (JSON comment + embedded a-tag) → outer div close
@@ -375,10 +409,10 @@ Anti-examples:
 
 ```mermaid
 flowchart LR
-  A[Want to insert a jump] --> B{Jump to what?}
-  B -->|code / function / class| C[code tag<br/>class=code fixed and must be carried]
-  B -->|another MD document| D[document tag<br/>class=text fixed and must be carried<br/>href must end with .md]
-  B -->|flow diagram with node metadata| E[graph tag<br/>class=graph fixed and must be carried<br/>contains the three segments Mermaid + JSON + a-tag]
+  jump_request_001["Want to insert a jump"] --> target_type_002{"Jump to what?"}
+  target_type_002 -->|code / function / class| code_tag_003["code tag<br/>fixed class=code"]
+  target_type_002 -->|another MD document| document_tag_004["document tag<br/>fixed class=text<br/>href ends with .md"]
+  target_type_002 -->|flow diagram with node metadata| graph_tag_005["graph tag<br/>fixed class=graph<br/>Mermaid + JSON + a-tag"]
 ```
 
 **`class=code` → jump to code; `class=text` → jump to an MD document; `class=graph` → jump to a flow diagram with node metadata. The three classes are not interchangeable, not omittable, not rewritable.**
@@ -386,8 +420,8 @@ flowchart LR
 ---
 name: Markdown Document Writing Conventions
 
-update-time: 2026-07-31 06:14
+update-time: 2026-11-01 11:27
 
-description: The rules for writing / modifying any MD document: newly generated documents and drafts follow the triggering user request's language unless explicitly overridden; every generated MD carries a name/update-time/description meta-info block; Mermaid, relative-path, and code/document/graph jump-tag rules are enforced
+description: Markdown rules for language, meta-info, Mermaid, complete navigation targets, standalone and compact tags, and typed implementation-anchor authority
 
 ---

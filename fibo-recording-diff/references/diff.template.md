@@ -2,14 +2,14 @@
 
 > **Purpose**: record this implementation's real diff, summarizing each changed file before explaining its hunks in the recommended reading order.
 > **Location**: `.fibo/docs/specs/{feature-slug}/diff.md`
-> **Boundary**: this document only explains implementation changes that have already happened; it does not add AC, does not rewrite design decisions, and does not replace plan status.
+> **Boundary**: this document only explains implementation changes that have already happened after final test PASS or explicit WAIVED evidence; it does not add AC, rewrite test oracle/results or design decisions, and does not replace plan status.
 
 ## 1. Reading order
 
-| Order | File | Why read first | Related AC / task |
+| Order | File | Why read first | Related AC / TC / task |
 | --- | --- | --- | --- |
-| 1 | `path/to/entry.ts` | The entry first establishes the trigger main line of this behavior | AC-XX / task-01 |
-| 2 | `path/to/core.ts` | The core hunk explains the main state or rule change | AC-YY / task-02 |
+| 1 | `path/to/entry.ts` | The entry first establishes the trigger main line of this behavior | AC-XX / TC-01 / task-01 |
+| 2 | `path/to/core.ts` | The core hunk explains the main state or rule change | AC-YY / TC-02 / task-02 |
 
 ## 2. Change main line
 
@@ -31,9 +31,9 @@ flowchart TD
   }
 } -->
 <div style="display: flex; align-items: flex-end; margin-top: 12px;">
-    <span style="background: var(--tag-graph-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-graph-border); color: var(--tag-graph-fg); font-size: 14px; font-weight: 500;">
+    <span style="background-color: var(--tag-graph-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-graph-border); color: var(--tag-graph-fg); font-size: 14px; font-weight: 500;">
         <a target="_self" href="#.fibo/docs/specs/{feature-slug}/diff.md:1?class=graph" style="color: inherit; text-decoration: none;">
-            Graph: .fibo/docs/specs/{feature-slug}/diff.md:1
+            Graph: {Feature display name} diff change main line
         </a>
     </span>
 </div>
@@ -54,7 +54,7 @@ flowchart TD
 #### Hunk 1: {name it by design intent, not by writing "modified several lines"}
 
 <div style="display: flex; align-items: flex-end;">
-    <span style="background: var(--tag-code-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-code-border); color: var(--tag-code-fg); font-size: 14px; font-weight: 500;">
+    <span style="background-color: var(--tag-code-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-code-border); color: var(--tag-code-fg); font-size: 14px; font-weight: 500;">
         <a target="_self" href="#path/to/entry.ts:10-40?class=code" style="color: inherit; text-decoration: none;">
             Code: path/to/entry.ts:10-40
         </a>
@@ -68,7 +68,7 @@ flowchart TD
 #### Hunk 2: {next logic intent}
 
 <div style="display: flex; align-items: flex-end;">
-    <span style="background: var(--tag-code-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-code-border); color: var(--tag-code-fg); font-size: 14px; font-weight: 500;">
+    <span style="background-color: var(--tag-code-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-code-border); color: var(--tag-code-fg); font-size: 14px; font-weight: 500;">
         <a target="_self" href="#path/to/entry.ts:42?class=code" style="color: inherit; text-decoration: none;">
             Code: path/to/entry.ts:42
         </a>
@@ -90,7 +90,7 @@ flowchart TD
 #### Hunk 1: {core logic intent}
 
 <div style="display: flex; align-items: flex-end;">
-    <span style="background: var(--tag-code-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-code-border); color: var(--tag-code-fg); font-size: 14px; font-weight: 500;">
+    <span style="background-color: var(--tag-code-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-code-border); color: var(--tag-code-fg); font-size: 14px; font-weight: 500;">
         <a target="_self" href="#path/to/core.ts:50-120?class=code" style="color: inherit; text-decoration: none;">
             Code: path/to/core.ts:50-120
         </a>
@@ -104,7 +104,7 @@ flowchart TD
 ## 4. Related documents
 
 <div style="display: flex; align-items: flex-end;">
-    <span style="background: var(--tag-text-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-text-border); color: var(--tag-text-fg); font-size: 14px; font-weight: 500;">
+    <span style="background-color: var(--tag-text-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-text-border); color: var(--tag-text-fg); font-size: 14px; font-weight: 500;">
         <a target="_self" href="#.fibo/docs/specs/{feature-slug}/spec.md?class=text" style="color: inherit; text-decoration: none;">
             Document: .fibo/docs/specs/{feature-slug}/spec.md
         </a>
@@ -112,7 +112,7 @@ flowchart TD
 </div>
 
 <div style="display: flex; align-items: flex-end;">
-    <span style="background: var(--tag-text-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-text-border); color: var(--tag-text-fg); font-size: 14px; font-weight: 500;">
+    <span style="background-color: var(--tag-text-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-text-border); color: var(--tag-text-fg); font-size: 14px; font-weight: 500;">
         <a target="_self" href="#.fibo/docs/specs/{feature-slug}/design.md?class=text" style="color: inherit; text-decoration: none;">
             Document: .fibo/docs/specs/{feature-slug}/design.md
         </a>
@@ -120,7 +120,15 @@ flowchart TD
 </div>
 
 <div style="display: flex; align-items: flex-end;">
-    <span style="background: var(--tag-text-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-text-border); color: var(--tag-text-fg); font-size: 14px; font-weight: 500;">
+    <span style="background-color: var(--tag-text-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-text-border); color: var(--tag-text-fg); font-size: 14px; font-weight: 500;">
+        <a target="_self" href="#.fibo/docs/specs/{feature-slug}/test.md?class=text" style="color: inherit; text-decoration: none;">
+            Document: .fibo/docs/specs/{feature-slug}/test.md
+        </a>
+    </span>
+</div>
+
+<div style="display: flex; align-items: flex-end;">
+    <span style="background-color: var(--tag-text-bg); margin: 8px 0 8px 14px; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--tag-text-border); color: var(--tag-text-fg); font-size: 14px; font-weight: 500;">
         <a target="_self" href="#.fibo/docs/specs/{feature-slug}/plan.md?class=text" style="color: inherit; text-decoration: none;">
             Document: .fibo/docs/specs/{feature-slug}/plan.md
         </a>

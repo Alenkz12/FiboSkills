@@ -30,21 +30,21 @@
 
 ```mermaid
 flowchart TD
-  T[User requests commit / sync] --> EI[Call ensure-index<br/>create or reconcile v2 schema]
-  EI -->|Failure| END[Stop; keep the existing index unchanged]
-  EI -->|Success| A[Call list-repos<br/>get repo layout and pre-check the working tree]
-  A --> B{Uncommitted changes?}
-  B -->|Yes| C[Remind the user:<br/>this run is based only on the committed range;<br/>commit first before running?]
-  B -->|No| E[Call list-changes<br/>to get the repo-wide change list]
-  C -->|User confirms to continue| E
-  C -->|User wants to commit first| END[Pause, wait for the user's action]
-  E --> F{Is the list empty?}
-  F -->|Yes| Z[No sync needed, only refresh lastSyncTime]
-  F -->|No| G[Call get-diff on files of interest<br/>fetch a single-file diff on demand]
-  G --> H[Sync the docs based on the diff]
-  H --> U[For each repo with changes call update-index<br/>advance lastSyncHash / lastSyncTime]
-  U --> J[Output the sync report]
-  Z --> U
+  sync_request_001["User requests commit / sync"] --> ensure_index_002["Call ensure-index<br/>create or reconcile v2 schema"]
+  ensure_index_002 -->|Failure| index_failure_003["Stop; keep the existing index unchanged"]
+  ensure_index_002 -->|Success| list_repos_004["Call list-repos<br/>get repo layout and pre-check working tree"]
+  list_repos_004 --> dirty_check_005{"Uncommitted changes?"}
+  dirty_check_005 -->|Yes| dirty_prompt_006["Explain committed-range boundary<br/>ask whether to commit first"]
+  dirty_check_005 -->|No| list_changes_007["Call list-changes<br/>get repo-wide change list"]
+  dirty_prompt_006 -->|Continue| list_changes_007
+  dirty_prompt_006 -->|Commit first| user_pause_008["Pause for the user's action"]
+  list_changes_007 --> empty_check_009{"Is the list empty?"}
+  empty_check_009 -->|Yes| no_changes_010["No doc sync needed<br/>refresh lastSyncTime"]
+  empty_check_009 -->|No| fetch_diff_011["Call get-diff on files of interest"]
+  fetch_diff_011 --> sync_docs_012["Sync docs from the diff"]
+  sync_docs_012 --> update_index_013["Call update-index for changed repos<br/>advance hash and time"]
+  update_index_013 --> sync_report_014["Output the sync report"]
+  no_changes_010 --> update_index_013
 ```
 
 ---
@@ -136,13 +136,16 @@ After `list-changes` gives the change-file list, you need to find "MD that menti
 
 | Situation | Example | Handling |
 | --- | --- | --- |
-| **Implementation-detail drift** | Line-number anchor moved, interface name changed, file renamed, a deleted symbol still referenced, a new public API not in the doc | Update the doc directly per the code |
-| **Doc rules lag the current code** | The doc AC says "timeout 30s", the current code stably implements 60s; the call chain explained by an old diff has been replaced by a new implementation; two specs give conflicting descriptions of the same behavior | Update the effective description with code as the truth; keep the old entry and mark `stale, for reference only` nearby, write the code source of truth in the report |
-| **Code facts unclear / suspected bug** | Multi-branch behavior cannot be confirmed; the implementation looks like it breaks the critical path; tests and code facts contradict each other | **Stop and report to the user**: the difference + scope of impact + what the user needs to decide; do not use doc sync to paper over an uncertain implementation |
+| **Implementation-detail drift** | Line-number anchor moved, interface/test-file name changed, file renamed, a deleted symbol still referenced, runner command changed | Update paths, names, commands, and anchors from current code/config facts |
+| **New-test layout violation** | A test marked `new` targets `src/a/c` but was created under `tests/`, beside the source, or outside `test/a/c` | Report contract error and return to planning/execution; do not normalize test.md to the wrong repository path |
+| **Signed behavior or test oracle differs from code** | AC/TC expects 30s but implementation returns 60s; negative case is not enforced | Treat as implementation nonconformance; stop routine sync and route to repair, or obtain a new brainstorming sign-off if the behavior change is intentional |
+| **Test evidence differs from claims** | test.md says PASS without a real run; latest run is FAIL/flaky; waiver has no explicit approval | Real execution wins; correct the evidence/status, never the oracle, and do not claim completion |
+| **Implementation explanation is stale** | A call chain explained by design/diff has been replaced, while intended behavior is unchanged | Update factual description from code/real diff; keep obsolete implementation-detail history marked `stale, for reference only` where useful |
+| **Code facts unclear / suspected bug** | Multi-branch behavior cannot be confirmed; implementation looks like it breaks the critical path; tests and code facts contradict each other | **Stop and report to the user**; do not use doc sync to paper over an uncertain implementation |
 | **Report-type docs** (`reports/`) | Investigation / audit / retrospective snapshots | **Do not participate in this sync** (snapshot nature, per `docs-system.md` §2) |
 | **Unrelated beautification** | Adjusting the layout of an unrelated section / fixing grammar | **Forbidden** to change while at it |
 
-> 📌 `.fibo/docs/specs/**/{design,plan,diff}.md` are treated equally with `spec.md` = **living contracts**, participating in this sync flow; among them `design.md` additionally triggers the §9 consistency check, and `diff.md` must be refreshed from a real diff / patch, backfilling hunks from memory is forbidden.
+> 📌 `.fibo/docs/specs/**/{spec,design,test,plan,diff}.md` form the **living-contract quintet**. `design.md` triggers §9, `test.md` triggers §10, and `diff.md` is refreshed only from a real diff after final PASS or explicit WAIVED evidence.
 
 ---
 
@@ -172,8 +175,9 @@ Repo-wide grep hit Y candidate MD
 Doc sync report:
 - README.md: Updated (fixed 1 interface name fooBar → fooBaz)
 - .fibo/docs/specs/auth/spec.md: Updated (AC-3 implementation anchor 120-155 → 130-170)
+- .fibo/docs/specs/auth/test.md: Updated (refreshed a test path and recorded the real final PASS; oracle unchanged)
 - .fibo/docs/specs/auth/diff.md: Updated (refreshed 2 files / 4 hunks from the commit-range diff)
-- .fibo/docs/specs/auth-legacy/spec.md: Updated (marked AC-2 stale, for reference only; source of truth src/auth/session.ts:120-155)
+- .fibo/docs/specs/auth-legacy/design.md: Updated (marked an obsolete implementation path stale, for reference only; source of truth src/auth/session.ts:120-155)
 - .fibo/docs/reports/2026-05-audit.md: No-update-needed (snapshot doc does not participate in sync)
 - docs/legacy/old-plan.md: Skipped (code facts unclear, see the conversation above; stopped, no auto-change made)
 
@@ -197,8 +201,9 @@ Doc sync report:
 - ❌ Do not skip the repo-wide search for candidate MD by looking only at `.fibo/docs/`
 - ❌ `lastSyncHash` must be the full 40-char SHA, short hashes are not allowed
 - ❌ Do not modify snapshot / tool artifacts like `.fibo/scripts/`, `.fibo/docs/reports/`
-- ❌ Do not skip `diff.md` as a reports snapshot; it participates in the sync equally with spec/design/plan, but can only be refreshed driven by a real diff
-- ❌ Do not delete conflicting old entries to fabricate doc consistency; you must keep them and mark `stale, for reference only`
+- ❌ Do not skip `test.md` or `diff.md`; test evidence comes from real execution, and diff hunks come from a real diff
+- ❌ Do not rewrite signed AC or test oracle to match current code; route the mismatch to repair or a newly signed behavior change
+- ❌ Do not delete obsolete implementation-detail history merely to fabricate consistency; preserve useful context with `stale, for reference only`
 
 ---
 
@@ -215,10 +220,10 @@ In the sync stage of this flow, for **every** candidate-hit `.fibo/docs/specs/<f
 
 ```mermaid
 flowchart LR
-  P[Parse design.md §3<br/>take all "new/modified" paths] --> E{For each path<br/>do an existence check}
-  E -->|Path missing / glob 0 hits| MISS[Record in the "missing list"]
-  E -->|Path exists| OK[Skip]
-  MISS --> R[Report in the sync report:<br/>design.md Updated (removed X)]
+  parse_paths_001["Parse design.md §3<br/>collect new/modified paths"] --> existence_check_002{"Does each path or glob exist?"}
+  existence_check_002 -->|Missing / 0 matches| missing_path_003["Record in the missing list"]
+  existence_check_002 -->|Exists| existing_path_004["No correction needed"]
+  missing_path_003 --> removal_report_005["Report design.md Updated<br/>removed stale path X"]
 ```
 
 - The existence check is implemented cross-OS: use `ls <path>` / `Test-Path <path>` / `python -c "import os; print(os.path.exists('<path>'))"`, globs use shell wildcards.
@@ -238,10 +243,45 @@ flowchart LR
 ```
 
 ---
+
+## 10. test.md consistency check
+
+For every candidate-hit `.fibo/docs/specs/<feature>/test.md`, perform a lightweight contract check without inventing or rerunning evidence:
+
+1. Extract sibling spec.md AC IDs and test.md traceability-matrix AC / TC IDs.
+2. Report a contract error if any spec AC lacks a TC or test.md references an unknown AC.
+3. Check that every concrete test artifact declares origin `new` / `existing`, that its path exists, and that its `modify` / `read-only` access agrees with plan.md; `none` has neither path nor origin. A missing origin is a contract error because the layout rule cannot be adjudicated.
+4. For every test artifact marked `new`, require an owning production `src/...` path or an explicit `shared-support` reason. Resolve the nearest owning project root and verify that a source-mapped artifact preserves the post-`src/` directory under sibling `test/` (`src/a/c` → `test/a/c`); shared support must still be under that project's `test/`. A mismatch is a contract error, not implementation-detail drift.
+5. For `existing` artifacts, missing or renamed paths are implementation-detail drift and may be corrected from repo facts; existing historical locations do not waive step 4 for new files.
+6. If final state is PASS, require applicable TC to be `[√] final-passed` and latest-evidence entries containing command, environment/revision or identifiable worktree snapshot, and PASS result. Evidence must correspond to the implementation being synchronized.
+7. If final state is WAIVED, require an explicit approval statement plus scope, reason, and impact.
+
+```mermaid
+flowchart LR
+  collect_contract_001["Read sibling spec AC + test matrix"] --> coverage_check_002{"AC↔TC complete and bounded?"}
+  coverage_check_002 -->|No| contract_error_003["Report Not-updated<br/>return to planning"]
+  coverage_check_002 -->|Yes| layout_check_004{"New tests mirror src→test?"}
+  layout_check_004 -->|No| layout_error_005["Report Not-updated<br/>return to planning/execution"]
+  layout_check_004 -->|Yes| path_check_006{"Declared test paths exist?"}
+  path_check_006 -->|No, existing-path drift| path_drift_007["Correct existing path facts<br/>oracle unchanged"]
+  path_check_006 -->|Yes| evidence_check_008{"PASS/WAIVED evidence complete?"}
+  path_drift_007 --> evidence_check_008
+  evidence_check_008 -->|No| evidence_error_009["Report Not-updated<br/>return to fibo-testing Verify"]
+  evidence_check_008 -->|Yes| contract_ok_010["No-update-needed or factual update"]
+```
+
+Boundaries:
+
+- Do not change Given/When/Then, expected values, thresholds, or test level merely to make the check pass.
+- Do not repair a new-test layout violation by changing only design.md/test.md/plan.md; the test source must be moved through a newly validated plan boundary before sync can complete.
+- Do not fabricate a command result or treat an earlier revision/worktree snapshot's PASS as current evidence after behavior, commands, or implementation changed.
+- A contract error blocks claiming synchronized completion, but does not authorize commit-sync to edit production/test code.
+
+---
 name: commit / explicit-sync-triggered batch doc sync conventions
 
-update-time: 2026-09-08 04:36
+update-time: 2026-10-10 14:18
 
-description: The explicit sync flow now begins with ensure-index to create or reconcile the v2 repository baseline before read-only diff analysis, then advances analyzed repositories after document synchronization
+description: Explicit-sync rules for mirrored new-test paths, the five feature artifacts, typed truth, consistency checks, and repo baselines
 
 ---

@@ -100,24 +100,6 @@ for r in data.get('repos', []):
 PY
 }
 
-# ─── Binary-extension filter ─────────────────────────────────────────
-# Lowercase suffix match; empty path is never filtered.
-isBinaryExt() {
-  local f="$1"
-  local lower
-  lower="$(printf '%s' "${f}" | LC_ALL=C tr 'A-Z' 'a-z')"
-  case "${lower}" in
-    *.png|*.jpg|*.jpeg|*.gif|*.webp|*.ico|*.bmp|*.tiff) return 0 ;;
-    *.woff|*.woff2|*.ttf|*.otf|*.eot) return 0 ;;
-    *.mp4|*.webm|*.mov|*.avi|*.mkv) return 0 ;;
-    *.mp3|*.wav|*.ogg|*.flac|*.m4a) return 0 ;;
-    *.zip|*.tar|*.gz|*.tgz|*.7z|*.rar|*.bz2) return 0 ;;
-    *.exe|*.dll|*.so|*.dylib|*.a|*.lib|*.o) return 0 ;;
-    *.pdf|*.docx|*.xlsx|*.pptx|*.doc|*.xls|*.ppt) return 0 ;;
-  esac
-  return 1
-}
-
 # ─── git wrappers ────────────────────────────────────────────────────
 # Always pass git arguments as an array via "$@" to avoid string evaluation.
 gitIn() {
@@ -134,32 +116,55 @@ hasUncommitted() {
   [ -n "${out}" ] && printf 'true' || printf 'false'
 }
 
-# Emit changed-files list for a single repo as TSV: `repo\tfile\tstatus`.
+# Emit one compact JSON object per change so filenames never become shell fields.
 # Base = lastSyncHash (if set) else HEAD-only (single commit).
 emitRepoChanges() {
   local repo_rel="$1"
   local base="$2"
-  local raw
-  if [ -z "${base}" ]; then
-    raw="$(gitIn "${repo_rel}" show --name-status --format= HEAD)"
-  else
-    raw="$(gitIn "${repo_rel}" diff --name-status "${base}..HEAD")"
-  fi
-  [ -z "${raw}" ] && return 0
-  # Parse: lines like "M\tfile" or "R100\told\tnew" (we keep the new name)
-  printf '%s\n' "${raw}" | while IFS=$'\t' read -r status f1 f2; do
-    [ -z "${status}" ] && continue
-    local code file
-    code="$(printf '%s' "${status}" | cut -c1)"
-    case "${code}" in
-      M|A|D|R|C) ;;
-      *) continue ;;
-    esac
-    file="${f1}"
-    [ -n "${f2}" ] && file="${f2}"  # rename / copy: report destination
-    if isBinaryExt "${file}"; then continue; fi
-    printf '%s\t%s\t%s\n' "${repo_rel}" "${file}" "${code}"
-  done
+  # Bash command substitution cannot retain NUL bytes. Parse Git's stream before
+  # it enters any shell variable; JSON then safely carries tabs and newlines.
+  {
+    if [ -z "${base}" ]; then
+      gitIn "${repo_rel}" show --name-status -z --format= HEAD
+    else
+      gitIn "${repo_rel}" diff --name-status -z "${base}..HEAD"
+    fi
+  } | python3 -c '
+import json
+import sys
+
+binary_extensions = (
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".bmp", ".tiff",
+    ".woff", ".woff2", ".ttf", ".otf", ".eot",
+    ".mp4", ".webm", ".mov", ".avi", ".mkv", ".mp3", ".wav", ".ogg", ".flac", ".m4a",
+    ".zip", ".tar", ".gz", ".tgz", ".7z", ".rar", ".bz2",
+    ".exe", ".dll", ".so", ".dylib", ".a", ".lib", ".o",
+    ".pdf", ".docx", ".xlsx", ".pptx", ".doc", ".xls", ".ppt",
+)
+fields = sys.stdin.buffer.read().split(b"\0")
+if fields and fields[-1] == b"":
+    fields.pop()
+index = 0
+while index < len(fields):
+    status = fields[index].decode("ascii")
+    index += 1
+    if index >= len(fields):
+        break
+    file_path = fields[index]
+    index += 1
+    code = status[:1]
+    if code in ("R", "C"):
+        if index >= len(fields):
+            break
+        file_path = fields[index]
+        index += 1
+    if code not in ("M", "A", "D", "R", "C"):
+        continue
+    filename = file_path.decode("utf-8", "surrogateescape")
+    if filename.lower().endswith(binary_extensions):
+        continue
+    print(json.dumps({"repo": sys.argv[1], "file": filename, "status": code}, separators=(",", ":")))
+' "${repo_rel}"
 }
 
 # Tiny JSON escaper for string values (covers \, ", control chars)
@@ -316,12 +321,10 @@ cmdListChanges() {
   printf '['
   while IFS=$'\t' read -r path hash _time; do
     [ -z "${path}" ] && continue
-    while IFS=$'\t' read -r repo file status; do
+    while IFS= read -r change; do
+      [ -z "${change}" ] && continue
       if [ ${first} -eq 1 ]; then first=0; else printf ','; fi
-      printf '{"repo":%s,"file":%s,"status":%s}' \
-        "$(printf '%s' "${repo}" | jsonEscape)" \
-        "$(printf '%s' "${file}" | jsonEscape)" \
-        "$(printf '"%s"' "${status}")"
+      printf '%s' "${change}"
     done < <(emitRepoChanges "${path}" "${hash}")
   done < <(parseRepos)
   printf ']\n'
@@ -355,9 +358,15 @@ cmdGetDiff() {
 
   # Check file is in the changed list before emitting diff
   local in_list=0
-  emitRepoChanges "${target_repo}" "${found_hash}" | while IFS=$'\t' read -r _r f _s; do
-    [ "${f}" = "${target_file}" ] && exit 99
-  done
+  emitRepoChanges "${target_repo}" "${found_hash}" | python3 -c '
+import json
+import sys
+found = False
+for line in sys.stdin:
+    if json.loads(line)["file"] == sys.argv[1]:
+        found = True
+sys.exit(99 if found else 0)
+' "${target_file}"
   if [ $? -eq 99 ]; then in_list=1; fi
   if [ ${in_list} -eq 0 ]; then
     # Absence from the change list is a successful no-op.

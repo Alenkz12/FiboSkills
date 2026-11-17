@@ -23,23 +23,26 @@
 | --- | --- | --- | --- | --- |
 | AP-MD-01 | `href="/src/foo.ts?class=code"` | `href="#src/foo.ts?class=code"` | href must start with `#`, the path does not start with `/` | markdown.md §2 |
 | AP-MD-02 | `href="#C:/Users/.../foo.ts?class=code"` | `href="#src/foo.ts?class=code"` | Absolute paths are forbidden | markdown.md §2 |
-| AP-MD-03 | Tag text `Code: UserService.ts` | `Code: src/services/UserService.ts` | Tag text must be the full relative path, not just the filename | markdown.md §2 |
-| AP-MD-04 | Tag text `Document: services` | `Document: src/services/index.md` | Cannot write only the directory name | markdown.md §2 |
+| AP-MD-03 | Standalone text `Code: UserService.ts` for target `src/services/UserService.ts` | Standalone `Code: src/services/UserService.ts`; compact `UserService.ts` | Standalone cards show full targets; compact labels show filenames without prefixes | markdown.md §2.1 |
+| AP-MD-04 | Standalone text `Document: services` for target `src/services/index.md` | Standalone `Document: src/services/index.md`; compact `index.md` | Visible text follows the presentation; full targets remain in href | markdown.md §2.1 |
 | AP-MD-05 | `href="#src/foo.ts"` | `href="#src/foo.ts?class=code"` | `?class=code` must be carried | markdown.md §3 |
 | AP-MD-06 | `href="#src/foo.ts?class=function"` | `href="#src/foo.ts?class=code"` | A code tag's class is fixed as `code` | markdown.md §3 |
 | AP-MD-07 | `href="#src/foo.ts?type=code"` | `href="#src/foo.ts?class=code"` | The parameter name must be `class`, not `type` | markdown.md §3 |
 | AP-MD-08 | `src/foo.ts#parseConfig` (anchoring by symbol name) or a single line written as `src/foo.ts:45-45` | `src/foo.ts:120-155` (line range) or `src/foo.ts:45` (single line) | This project anchors uniformly by line number; single line uses `:number`, `#symbolName` is forbidden | markdown.md §3.1 |
 | AP-MD-09 | `href="#docs/api/UserService.md"` | `href="#docs/api/UserService.md?class=text"` | `?class=text` must be carried | markdown.md §4 |
 | AP-MD-10 | `href="#docs/x.md?class=md"` | `href="#docs/x.md?class=text"` | A document tag's class is fixed as `text` | markdown.md §4 |
-| AP-MD-11 | `href="#docs/api/UserService"` | `href="#docs/api/UserService.md?class=text"` | href must end with `.md` | markdown.md §4 |
+| AP-MD-11 | An ordinary Markdown document reference uses `href="#docs/api/UserService?class=text"` | `href="#docs/api/UserService.md?class=text"` | Ordinary document targets end with `.md`; source/directory shortcuts are analysis-specific | markdown.md §4 |
 | AP-MD-12 | `href="#docs/x.html?class=text"` | `href="#docs/x.md?class=text"` | The suffix must be `.md` | markdown.md §4 |
-| AP-MD-13 | `Document: UserService.md` | `Document: docs/api/UserService.md` | Tag text must be the full relative path | markdown.md §4 |
-| AP-MD-14 | `File details: xxx` / `Design doc: xxx` | `Code: ...` / `Document: ...` | Tag text must use the standard English prefix; localized or non-standard prefixes are forbidden | markdown.md §4 |
+| AP-MD-13 | Standalone `Document: UserService.md` for target `docs/api/UserService.md` | Standalone `Document: docs/api/UserService.md`; compact `UserService.md` | Standalone cards show full targets; compact tags show only filenames | markdown.md §2.1 / §4 |
+| AP-MD-14 | Standalone prefixes `File details: xxx` / `Design doc: xxx`, or type prefixes on compact tags | Standard `Code: ...` / `Document: ...` / `Graph: ...` on standalone cards; no prefix on compact tags | Prefix rules depend on presentation | markdown.md §2.1 |
 | AP-MD-15 | Key flow listed as text only | Add a Mermaid flowchart / state diagram / sequence diagram | Key logic must be diagrammed (MD scenarios only) | markdown.md §1 |
 | AP-MD-16 | Mermaid nodes use `A/B/C/D` | Nodes use semantic naming (e.g. `user login`) | Node naming must be semantic | markdown.md §1 |
 | AP-MD-17 | A single Mermaid with 50+ nodes | Split into multiple, ≤ 15 nodes each | Complex diagrams must be split | markdown.md §1 |
 | AP-MD-18 | The generated / updated MD lacks a meta-info block at the end | Write the three fields `name/update-time/description` at the end | An MD artifact must be searchable, locatable, syncable | markdown.md §0 |
 | AP-MD-19 | In the meta-info block, `name/update-time/description` are crammed together, or `description` is immediately followed by the closing `---` | Keep one blank line below each of the three fields, and one blank line after `description` before the `---` | Spacing between meta-info fields affects rendering and readability | markdown.md §0 |
+| AP-MD-20 | Shortening href to `#Foo.ts?class=code` when the compact label is `Foo.ts` and the target is `src/Foo.ts` | Keep `href="#src/Foo.ts?class=code"` with compact label `Foo.ts` | Short labels must not shorten navigation targets or remove locators | markdown.md §2.1 |
+| AP-MD-21 | Tag styling uses `background: var(--tag-code-bg)` | Use `background-color: var(--tag-code-bg)` and the matching foreground variable | The renderer filters out the background shorthand | markdown.md §2.1 |
+| AP-MD-22 | Graph text displays its path/sequence instead of its title | Standalone `Graph: {mermaid_info.name}`; compact `{mermaid_info.name}` | Graph titles are visible labels; locators stay in href and container IDs | markdown.md §5.3 |
 
 ## AP-CD-* Code / comments
 
@@ -54,14 +57,16 @@
 | AP-CD-07 | Code changed but an old comment inconsistent with the new behavior is left behind | Update the comment together with the code | Comment and code must stay in sync | code.md §3 |
 | AP-CD-08 | Code deleted but a leftover comment kept | Delete the comment along with it | Delete code along with its comment | code.md §3 |
 | AP-CD-09 | After renaming a function / parameter the comment still uses the old name | Sync the referenced name in the comment | After renaming, comments must be synced | code.md §3 |
-| AP-CD-10 | Copying a large chunk of the design doc verbatim into a comment | The comment only "points the way + WHY", the original text stays in `.fibo/docs/` | Documents are the docs' job, comments only point the way | code.md §4 |
-| AP-CD-11 | Cramming a spec/design anchor into an ordinary CRUD utility function | Add it only when "a key decision lands / the intent needs a doc to explain" | Omit when the trigger conditions are not met | code.md §4.1, §4.4 |
+| AP-CD-10 | Copying a large chunk of spec/design/test.md verbatim into a comment | The comment only "points the way + WHY", the original text stays in `.fibo/docs/` | Documents are the docs' job, comments only point the way | code.md §4 |
+| AP-CD-11 | Cramming a spec/design/test anchor into ordinary CRUD, a utility, or a self-explanatory test | Add it only when a key decision/non-obvious TC lands or intent needs a doc | Omit when trigger conditions are not met | code.md §4.1, §4.4 |
 | AP-CD-12 | `spec: /docs/foo.md` (absolute path) | `spec: .fibo/docs/specs/<feature>/spec.md#AC-03` | References must be relative paths | code.md §4.2 |
-| AP-CD-13 | Isolated numbers in comments like `// task-09` / `// D5` / `// AC-3` | Must carry the filename + anchor: `spec: spec.md#AC-03` | Isolated numbers detached from context are baffling | code.md §4.2, §4.4 |
+| AP-CD-13 | Isolated numbers in comments like `// task-09` / `// D5` / `// AC-3` / `// TC-2` | Carry the full relative filename + anchor, e.g. `test: .fibo/docs/specs/x/test.md#TC-02` | Isolated numbers detached from context are baffling | code.md §4.2, §4.4 |
 | AP-CD-14 | A single-line comment crammed with ≥ 3 anchors | Switch to the multi-line block-comment format | A single line holds at most 2 anchors | code.md §4.2 |
 | AP-CD-15 | The referenced `.md` file was renamed / deleted but the comment did not follow | Same source as §3, sync the reference | Doc renamed → sync the comment | code.md §4.4 |
 | AP-CD-16 | Skipping the §5 self-check checklist before wrap-up delivery | Must run the K1–K7 self-check | Finishing code must run the self-check | code.md §5 |
-| AP-CD-17 | Multiple `spec:` / `design:` references in a JSDoc crammed together consecutively | Each reference on its own line, with an empty comment line between reference lines | The hover tooltip needs the empty comment line to render line breaks | code.md §4.2 |
+| AP-CD-17 | Multiple `spec:` / `design:` / `test:` references in a JSDoc crammed together consecutively | Each reference on its own line, with an empty comment line between reference lines | The hover tooltip needs the empty comment line to render line breaks | code.md §4.2 |
+| AP-CD-18 | A non-obvious regression/boundary test cites only `TC-03` or no context | Use `test: .fibo/docs/specs/<feature>/test.md#TC-03` when the TC intent is not clear from assertions alone | Test intent remains traceable without annotating every trivial test | code.md §4.1 / §4.2 |
+| AP-CD-19 | A new test for `src/a/c/Foo.ts` is created at `tests/foo.test.ts`, beside the source, or under `src/a/c/__tests__/` | Create it under sibling `test/a/c/`, using the runner's filename convention | New test sources mirror the post-`src/` directory under the nearest project root's `test/` tree | code.md §0 |
 
 ## AP-SY-* Reverse sync / meta-info block
 
@@ -69,7 +74,7 @@
 | --- | --- | --- | --- | --- |
 | AP-SY-01 | Autonomously scanning "seemingly related" historical MD to add anchors | Only touch MD the user mentioned this session / AI-generated MD / the corresponding spec.md | The sync target has a whitelist | sync.md §1.1 |
 | AP-SY-02 | Modifying README / CHANGELOG / third-party docs | Skip these documents | Docs outside the whitelist must not be modified | sync.md §1.1 |
-| AP-SY-03 | Directly changing an old AC business rule into the new rule | Keep the old AC and mark `stale, for reference only` nearby + the code source of truth | For a living contract conflict, code wins, but the historical rule is not lost | sync.md §2.1 |
+| AP-SY-03 | Rewriting a signed AC or test oracle so it matches the current code | Treat the mismatch as implementation nonconformance; repair the implementation, or obtain a new brainstorming sign-off for an intended behavior change | Current code is not the truth source for intended behavior | sync.md §1 / §2.1 |
 | AP-SY-04 | Deleting a design description that has not become invalid | Keep the original description, only add the implementation anchor | Do not damage existing content | sync.md §2 |
 | AP-SY-05 | Modifying the design doc's chapter structure / heading levels / Mermaid diagrams | Do not touch these | Sync only adds/fixes implementation details | sync.md §2 |
 | AP-SY-06 | Writing the meta-info block in the middle of the document | Write it at the very end of the document | The position is fixed | sync.md §2.2 |
@@ -85,9 +90,11 @@
 | AP-SY-16 | Inventing a new state (e.g. "partially updated") in the sync report | Only use `Updated` / `Not-updated` / `No-update-needed` | The state enum has only three | sync.md §4 |
 | AP-SY-17 | "Not-updated" without a reason | List the reason (waiting for user confirmation / implementation unstable, etc.) | Not-updated must be explained | sync.md §4 |
 | AP-SY-18 | Skipping the sync self-check at task wrap-up | Must walk the sync.md §3 self-check flow diagram | The wrap-up self-check cannot be skipped | sync.md §3 |
-| AP-SY-19 | The feature has a real code diff but wrap-up only syncs spec/design/plan, no diff.md generated or refreshed | Call `fibo-recording-diff` to generate / refresh `diff.md` from the real diff, and list its status in the report | diff.md participates in the sync equally with spec/design/plan | sync.md §2 |
-| AP-SY-20 | Directly deleting the old AC / old diff explanation on a doc conflict | Keep the original entry and mark `stale, for reference only`, attach the code source of truth | Stale history must be traceable | sync.md §2.1 / §5 |
-| AP-SY-21 | On a doc conflict still deferring to the old spec and demanding the code be changed | Read the code first; when the code facts are clear, code wins — update the doc and mark stale items | Reverse sync defers to the current code facts | sync.md §1 / §5 |
+| AP-SY-19 | The feature has a real code diff but wrap-up syncs only spec/design/test/plan, with no eligible diff.md refresh | After final PASS or explicit WAIVED evidence, call `fibo-recording-diff` using the real diff and report its status | diff.md is the fifth living artifact but cannot precede the test gate | sync.md §2 |
+| AP-SY-20 | Deleting an obsolete implementation-detail entry or silently rewriting intended behavior | Preserve useful obsolete implementation details with `stale, for reference only`; never use the marker to supersede signed AC/oracle | History remains traceable without letting code redefine intent | sync.md §2.1 / §5 |
+| AP-SY-21 | Applying one blanket "code wins" rule to every conflict | Select the typed truth source: spec for intent, code/config for implementation facts, real runs for evidence, real diff for hunks | Different facts have different authorities | sync.md §1 / §5 |
+| AP-SY-22 | test.md says PASS after an unrelated/flaky rerun, or its Then value is weakened to make code pass | Keep FAIL/flaky evidence until repaired or explicitly waived; preserve the signed oracle | Verification evidence must come from the real run and cannot rewrite the requirement | sync.md §1 / §2 |
+| AP-SY-23 | A newly generated test landed outside the mirrored `test/` path, so reverse sync rewrites test.md to accept that location as a repo fact | Report implementation nonconformance and return to planning/execution; only historical existing-test paths follow repository facts | An invalid new layout cannot become valid through reverse sync | sync.md §1 / §2 |
 
 ## AP-CS-* commit / sync-only flow
 
@@ -101,11 +108,12 @@
 | AP-CS-06 | Skipping the `.fibo/index.json` update | Update hash + time on every sync | index.json must advance | commit-sync.md §8 |
 | AP-CS-07 | `lastSyncHash: "abc1234"` (short hash) | `lastSyncHash: "abc1234..."` full 40-char SHA | Must be the full SHA | commit-sync.md §3 |
 | AP-CS-08 | Searching only MD under `.fibo/docs/` | Search the whole repo `**/*.md`, excluding vendored | Candidate MD must be searched repo-wide | commit-sync.md §6 |
-| AP-CS-09 | On a business-rule conflict, deleting the old rule or silently rewriting it | Update the effective description with code as the truth, and mark the old rule `stale, for reference only` | Conflicting history must be traceable | commit-sync.md §6 |
+| AP-CS-09 | On an AC/oracle versus code conflict, commit-sync silently rewrites the requirement | Stop routine sync and route to implementation repair or a newly signed behavior change | Signed intent cannot be replaced by current implementation | commit-sync.md §6 |
 | AP-CS-10 | Still updating `index.json` when the code facts are unclear | Do not touch index.json when paused | The paused state keeps the old hash | commit-sync.md §8 |
 | AP-CS-11 | Modifying a snapshot report under `reports/` | Report-type docs do not participate in the sync | reports are snapshots | commit-sync.md §7 / docs-system.md §2 |
-| AP-CS-12 | commit-sync skips `diff.md` as a reports snapshot | Treat `diff.md` as a living contract on par with spec/design/plan, refreshed only from a real diff | diff.md participates in the sync but hunks cannot be backfilled from memory | commit-sync.md §6 / §8 |
-| AP-CS-13 | In commit-sync, on hitting a stale spec/diff, directly changing it to the new rule without leaving a stale mark | Append `stale, for reference only` nearby, and write the source of truth in the report | Incremental sync must preserve historical context | commit-sync.md §6 / §7 |
+| AP-CS-12 | commit-sync skips `test.md` or `diff.md` | Treat both as members of the quintet; test results require real execution and diff hunks require a real diff | Evidence artifacts cannot be reconstructed from memory | commit-sync.md §6 / §8 / §10 |
+| AP-CS-13 | commit-sync changes an obsolete implementation detail without preserving useful context, or marks a signed AC stale from code alone | Mark only obsolete implementation details stale; route behavior/oracle changes through sign-off | Incremental sync preserves context and authority boundaries | commit-sync.md §6 / §7 |
+| AP-CS-14 | test.md declares PASS/WAIVED without command/revision evidence or explicit waiver scope/reason/impact | Return to `fibo-testing` Verify or obtain the user's explicit waiver before synchronized completion | Final status must be auditable | commit-sync.md §10 |
 
 ## AP-DS-* `.fibo/docs/` document system
 
@@ -120,15 +128,17 @@
 | AP-DS-07 | Modifying the conclusion of a published ADR under `decisions/` | Create a new ADR, mark the original `superseded by` | ADRs are immutable | docs-system.md §2 |
 | AP-DS-08 | When one investigation produces ≥ 2 reports, laying them flat in the `reports/` root (e.g. `2026-05-20-auth-audit-overview.md` / `2026-05-20-auth-audit-findings.md`) | Create a `reports/auth-audit/` subdirectory (directory name without date) to group them, containing one `README.md` summarizing each report, the rest being topic-named report files | Multiple reports must get a subdirectory | docs-system.md §3 |
 | AP-DS-09 | After creating a subdirectory under `reports/`, not placing a `README.md`, so its contents can only be found by digging | Add a `README.md` in the subdirectory collecting the file list and a one-line summary of each (constrains `reports/` only) | reports subdirectories must add a README for navigation | docs-system.md §3 |
-| AP-DS-10 | Marking `specs/<feature>/diff.md` as an optional snapshot / not participating in the sync | Write it as a living contract on par with spec/design/plan, maintained by `fibo-recording-diff` from the real diff | The feature quartet have equal status | docs-system.md §2 |
-| AP-DS-11 | On a living-contract conflict, moving the old doc to reports or deleting it | Keep it inside the original feature doc and mark `stale, for reference only` | The quartet are living contracts, historical context is not lost | docs-system.md §3 |
-| AP-DS-12 | Placing `plan.md` / `diff.md` directly under a big-feature directory `specs/<epic>/` | The big-feature layer only has spec.md + a splitting design.md; implementation-layer artifacts sink into sub-feature directories | A big-feature directory has no implementation-layer artifacts | docs-system.md §3.1 |
+| AP-DS-10 | Treating `test.md` or `diff.md` as optional snapshots outside sync | Maintain spec/design/test/plan/diff as the feature quintet; test.md comes from real planning/runs and diff.md from the real diff | The five feature artifacts have distinct but equal lifecycle participation | docs-system.md §2 |
+| AP-DS-11 | On a living-contract conflict, moving the old doc to reports or deleting it | Keep implementation history in the original feature artifact; preserve signed intent and use typed truth sources | The quintet remains traceable without allowing code to redefine requirements | docs-system.md §3 |
+| AP-DS-12 | Placing `plan.md` / `diff.md` directly under an epic, or omitting epic test.md | Epic contains spec.md + splitting design.md + master test.md + sub-features; task/hunk artifacts stay in sub-features | Epic verification spans sub-features but implementation detail does not | docs-system.md §3.1 |
 | AP-DS-13 | Laying a big feature's sub-features flat in the `specs/` root (e.g. `specs/epic-x-sub-a/`) | Nest them inside the big-feature directory: `specs/<epic>/<sub-feature>/` | Sub-features must be nested | docs-system.md §3.1 |
 | AP-DS-14 | A big feature's design.md writes implementation details (file list / interface contracts / concrete function changes) | Write only the splitting logic: sub-feature list / dependency order / total AC mapping / status table | The splitting design only answers "how to split" | docs-system.md §3.1 |
 | AP-DS-15 | After the epic spec is signed, auto-generating all sub-specs, no longer signing each | Each sub-feature's spec goes back to `fibo-brainstorming` for draft → sign-off individually | Each sub-spec must be signed individually | docs-system.md §3.1 |
 | AP-DS-16 | The user riffs off a stray idea and the AI proactively creates `ideas/{topic}.md` to archive it | Persist only when the user **explicitly asks** "record my idea / save this idea" | Persisting an idea requires an explicit user trigger | docs-system.md §3 |
 | AP-DS-17 | When recording an idea, writing it down once and done, marking `clarified` while the scenario / boundaries are still vague | Walk the clarification loop: keep asking the user, hang open questions in §4, keep Status `clarifying` until cleared | ideas is a requirements-clarification activity | docs-system.md §3 |
 | AP-DS-18 | Writing §3 feasibility as `feasible` from memory, without reading code | Actually read the relevant code (can dispatch Explore) before giving a conclusion and leaving a code anchor | The feasibility assessment must be code-backed | docs-system.md §3 |
+| AP-DS-19 | A feature has spec/design/plan/diff but no test.md, or test.md cannot trace every AC to TC | Generate test.md through `fibo-testing` Shape and require 100% AC↔TC coverage before implementation | Verification is a first-class feature contract | docs-system.md §2 / §3 |
+| AP-DS-20 | plan.md copies a second RED/GREEN command set, or lists a reused read-only test as writable merely for traceability | Keep canonical commands in test.md §5; declare test artifacts `modify` / `read-only` / `none`, and put only modified artifacts in involved-files | Prevent command drift and accidental test mutation | fibo-testing / fibo-writing-plan |
 
 ---
 
@@ -143,8 +153,8 @@
 ---
 name: Collaboration Conventions Anti-Pattern Gallery (anti-patterns)
 
-update-time: 2026-07-09 05:43
+update-time: 2026-11-01 11:27
 
-description: Anti-pattern quick reference, covering quartet sync, diff maintenance, big-feature splitting, report date-prefix naming and the multi-file report subdirectory rule, the stale-item marking rule, and ideas idea persistence (requires a user trigger + clarification loop + read code to assess feasibility) anti-patterns
+description: Anti-patterns for src→test placement, typed truth, the five feature artifacts, test evidence, diff maintenance, and docs lifecycle
 
 ---
